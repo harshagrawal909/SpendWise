@@ -1,0 +1,11 @@
+---
+description: Frontend UI standards (pointer buttons + cream surfaces)
+globs: frontend/src/**/*.{js,jsx,ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend UI standards
+
+- **Buttons**: ensure clickable buttons use `cursor-pointer` (prefer using the shared `components/ui/Button.jsx`).
+- **Surfaces**: prefer cream app surfaces via CSS tokens (`--bg`, `--surface`) and use `bg-[rgb(var(--surface))]` instead of hard-coded `bg-white` for cards/inputs/shell.
+
