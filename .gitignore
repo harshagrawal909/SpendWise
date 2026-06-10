@@ -1,0 +1,41 @@
+# Dependency directories
+**/node_modules/
+
+# Environment variables (Sensitive secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+**/.env
+**/*.env
+
+# Expo and React Native build folders
+**/.expo/
+**/.cxx/
+**/android/build/
+**/android/app/build/
+**/ios/build/
+**/*.apk
+**/*.aab
+
+# Build outputs
+**/dist/
+**/build/
+**/out/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# System Files
+.DS_Store
+Thumbs.db
+log
+*.log
