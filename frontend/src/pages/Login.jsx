@@ -24,6 +24,11 @@ export default function Login() {
 
   const handleAuthSuccess = useCallback((token) => {
     if (redirectUri) {
+      if (!redirectUri.startsWith("mobile://")) {
+        setError("Invalid mobile redirect URL.");
+        return;
+      }
+
       const delimiter = redirectUri.includes("?") ? "&" : "?";
       window.location.href = `${redirectUri}${delimiter}token=${encodeURIComponent(token)}`;
     } else {

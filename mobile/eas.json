@@ -9,6 +9,10 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://spendwise-backend-lows.onrender.com/api",
+        "EXPO_PUBLIC_WEB_URL": "https://myspendwise-finance.vercel.app"
+      },
       "android": {
         "buildType": "apk"
       }

@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const passwordRef = useRef<TextInput>(null);
-  const googleConfigured = Boolean(process.env.EXPO_PUBLIC_WEB_URL || 'http://192.168.254.5:5173');
+  const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
 
   const handleLogin = async () => {
     setError('');
@@ -49,11 +49,15 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!webUrl) {
+      setError('Google sign-in is not configured for this build.');
+      return;
+    }
+
     setError('');
     setGoogleLoading(true);
     try {
       const redirectUri = Linking.createURL('login-success');
-      const webUrl = process.env.EXPO_PUBLIC_WEB_URL || 'http://192.168.254.5:5173';
       const authUrl = `${webUrl}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
