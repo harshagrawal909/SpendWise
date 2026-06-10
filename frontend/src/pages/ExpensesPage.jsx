@@ -7,17 +7,12 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Spinner from "../components/ui/Spinner";
 import { useToast } from "../components/feedback/ToastProvider.jsx";
+import { formatDisplayDate, todayInputValue, toDateInputValue } from "../utils/date.js";
 
 function currencyINR(value) {
   const n = Number(value ?? 0);
   if (Number.isNaN(n)) return "₹0";
   return `₹${n.toLocaleString("en-IN")}`;
-}
-
-function toDateInputValue(v) {
-  if (!v) return "";
-  // backend returns LocalDate as yyyy-mm-dd
-  return String(v).slice(0, 10);
 }
 
 function EmptyState({ title, subtitle, action }) {
@@ -62,7 +57,7 @@ function EditModal({ open, initial, onClose, onSave }) {
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-lg rounded-[var(--radius)] border border-slate-200 bg-[rgb(var(--surface))] shadow-[var(--shadow)]">
+      <div className="w-full max-w-lg rounded-(--radius) border border-slate-200 bg-[rgb(var(--surface))] shadow-(--shadow)">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
             <div className="text-base font-extrabold text-slate-900">Edit transaction</div>
@@ -92,6 +87,7 @@ function EditModal({ open, initial, onClose, onSave }) {
               label="Date"
               type="date"
               value={toDateInputValue(form.date)}
+              max={todayInputValue()}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
             />
             <Select
@@ -263,6 +259,7 @@ export default function ExpensesPage() {
               label="Start date"
               type="date"
               value={startDate}
+              max={todayInputValue()}
               onChange={(e) => setStartDate(e.target.value)}
             />
 
@@ -270,6 +267,8 @@ export default function ExpensesPage() {
               label="End date"
               type="date"
               value={endDate}
+              max={todayInputValue()}
+              min={startDate || undefined}
               onChange={(e) => setEndDate(e.target.value)}
             />
 
@@ -317,64 +316,50 @@ export default function ExpensesPage() {
               Loading…
             </div>
           ) : items.length ? (
-            <div className="-mx-5 overflow-x-auto">
-              <table className="w-full min-w-[800px] border-separate border-spacing-0">
-                <thead>
-                  <tr className="text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    <th className="border-b border-slate-200 px-5 py-3">Date</th>
-                    <th className="border-b border-slate-200 px-5 py-3">Category</th>
-                    <th className="border-b border-slate-200 px-5 py-3">Type</th>
-                    <th className="border-b border-slate-200 px-5 py-3">Amount</th>
-                    <th className="border-b border-slate-200 px-5 py-3">Description</th>
-                    <th className="border-b border-slate-200 px-5 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((t) => {
-                    const isExpense = (t?.type ?? "EXPENSE") === "EXPENSE";
-                    const badgeVariant = isExpense ? "danger" : "success";
-                    const amountCls = isExpense ? "text-red-600" : "text-emerald-700";
-                    return (
-                      <tr key={t.id} className="hover:bg-slate-50/60">
-                        <td className="border-b border-slate-100 px-5 py-3 text-sm text-slate-700">
-                          {toDateInputValue(t?.date) || "—"}
-                        </td>
-                        <td className="border-b border-slate-100 px-5 py-3 text-sm font-semibold text-slate-900">
-                          {t?.category ?? "—"}
-                        </td>
-                        <td className="border-b border-slate-100 px-5 py-3">
-                          <Badge variant={badgeVariant}>{isExpense ? "Expense" : "Income"}</Badge>
-                        </td>
-                        <td className={["border-b border-slate-100 px-5 py-3 text-sm font-extrabold", amountCls].join(" ")}>
-                          {currencyINR(t?.amount)}
-                        </td>
-                        <td className="border-b border-slate-100 px-5 py-3 text-sm text-slate-600">
-                          {t?.description ?? "—"}
-                        </td>
-                        <td className="border-b border-slate-100 px-5 py-3 text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setEditing(t)}
-                              disabled={actionLoading}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="text-red-600 hover:bg-red-50"
-                              onClick={() => handleDelete(t.id)}
-                              disabled={actionLoading}
-                            >
-                              Delete
-                            </Button>
+            <div className="space-y-3">
+              {items.map((t) => {
+                const isExpense = (t?.type ?? "EXPENSE") === "EXPENSE";
+                const badgeVariant = isExpense ? "danger" : "success";
+                const amountCls = isExpense ? "text-red-600" : "text-emerald-700";
+                return (
+                  <div
+                    key={t.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-extrabold text-slate-900">
+                            {t?.category ?? "—"}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <Badge variant={badgeVariant}>{isExpense ? "Expense" : "Income"}</Badge>
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">{formatDisplayDate(t?.date)}</div>
+                        <div className={["mt-1 text-base font-extrabold", amountCls].join(" ")}>
+                          {currencyINR(t?.amount)}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-600">{t?.description ?? "—"}</div>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setEditing(t)}
+                          disabled={actionLoading}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDelete(t.id)}
+                          disabled={actionLoading}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <EmptyState

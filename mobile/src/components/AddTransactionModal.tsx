@@ -1,0 +1,115 @@
+import { useEffect, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+import { TransactionFormFields, type TransactionFormData } from '@/components/TransactionFormFields';
+import { Button } from '@/components/ui/Button';
+import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
+import API from '@/services/api';
+import { SpendWiseTheme } from '@/constants/theme';
+import { todayInputValue } from '@/utils/format';
+
+const emptyForm = (): TransactionFormData => ({
+  amount: '',
+  category: '',
+  date: todayInputValue(),
+  description: '',
+  type: 'EXPENSE',
+});
+
+export function AddTransactionModal() {
+  const { isAddModalOpen, closeAddModal, notifyTransactionChange } = useTransactionRefresh();
+  const [form, setForm] = useState<TransactionFormData>(emptyForm());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      setForm(emptyForm());
+      setError('');
+    }
+  }, [isAddModalOpen]);
+
+  const handleSave = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await API.post('/expenses', form);
+      notifyTransactionChange();
+      closeAddModal();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string; error?: string } } };
+      setError(err?.response?.data?.message ?? err?.response?.data?.error ?? 'Could not add transaction.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible={isAddModalOpen} animationType="slide" transparent onRequestClose={closeAddModal}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <Text style={styles.title}>Add transaction</Text>
+          <Text style={styles.subtitle}>Record a new income or expense</Text>
+
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <TransactionFormFields form={form} onChange={setForm} />
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <View style={styles.actions}>
+              <Button title="Cancel" variant="outline" onPress={closeAddModal} disabled={loading} />
+              <Button title={loading ? 'Saving…' : 'Save'} onPress={handleSave} loading={loading} />
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15,23,42,0.35)',
+  },
+  sheet: {
+    backgroundColor: SpendWiseTheme.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    paddingTop: 12,
+    maxHeight: '90%',
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: SpendWiseTheme.border,
+    marginBottom: 16,
+  },
+  title: { fontSize: 20, fontWeight: '800', color: SpendWiseTheme.text },
+  subtitle: { fontSize: 13, color: SpendWiseTheme.muted, marginBottom: 16, marginTop: 4 },
+  error: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+    color: '#B91C1C',
+    padding: 10,
+    fontSize: 13,
+  },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+});

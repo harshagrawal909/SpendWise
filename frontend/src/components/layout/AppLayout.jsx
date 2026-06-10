@@ -34,14 +34,8 @@ export default function AppLayout() {
   const location = useLocation();
 
   const handleLogout = async () => {
-    try {
-      await API.post("/auth/logout");
-    } catch {
-      // ignore
-    } finally {
       clearAuthToken();
       navigate("/", { replace: true });
-    }
   };
 
   const title =

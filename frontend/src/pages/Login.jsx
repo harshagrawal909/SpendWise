@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
@@ -12,16 +12,32 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const googleButtonRef = useRef(null);
   const navigate = useNavigate();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  // Get query params to support redirecting back to mobile app
+  const queryParams = new URLSearchParams(window.location.search);
+  const redirectUri = queryParams.get("redirect_uri");
+
+  const handleAuthSuccess = useCallback((token) => {
+    if (redirectUri) {
+      const delimiter = redirectUri.includes("?") ? "&" : "?";
+      window.location.href = `${redirectUri}${delimiter}token=${encodeURIComponent(token)}`;
+    } else {
+      setAuthToken(token);
+      navigate("/dashboard");
+    }
+  }, [redirectUri, navigate]);
 
   const handleLogin = async () => {
     setError("");
     setLoading(true);
     try {
       const res = await API.post("/auth/login", { email, password });
-      setAuthToken(res.data.token);
-      navigate("/dashboard");
+      handleAuthSuccess(res.data.token);
     } catch (e) {
       setError(
         e?.response?.data?.message ||
@@ -31,6 +47,66 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const res = await API.post("/auth/google", { idToken: credential });
+      handleAuthSuccess(res.data.token);
+    } catch (e) {
+      setError(
+        e?.response?.data?.message ||
+          "Google sign-in failed. Please try again."
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [handleAuthSuccess]);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return;
+
+    const renderGoogleButton = () => {
+      if (!window.google?.accounts?.id || !googleButtonRef.current) return;
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          if (response.credential) {
+            handleGoogleCredential(response.credential);
+          }
+        },
+      });
+
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: googleButtonRef.current.offsetWidth || 360,
+        text: "signin_with",
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return;
+    }
+
+    const existingScript = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]'
+    );
+    if (existingScript) {
+      existingScript.addEventListener("load", renderGoogleButton, { once: true });
+      return () => existingScript.removeEventListener("load", renderGoogleButton);
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    document.head.appendChild(script);
+  }, [googleClientId, handleGoogleCredential]);
 
   return (
     <div className="min-h-screen">
@@ -121,6 +197,25 @@ export default function Login() {
                     )}
                   </Button>
                 </form>
+
+                <div className="my-4 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Or
+                  </span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                {googleClientId ? (
+                  <div
+                    ref={googleButtonRef}
+                    className={googleLoading ? "pointer-events-none opacity-70" : ""}
+                  />
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    Add VITE_GOOGLE_CLIENT_ID to enable Google sign-in.
+                  </div>
+                )}
 
                 <div className="mt-4 text-sm text-slate-600">
                   Don&apos;t have an account?{" "}

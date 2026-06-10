@@ -5,6 +5,7 @@ import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
 import Spinner from "../components/ui/Spinner";
+import { todayInputValue } from "../utils/date.js";
 import {
   ResponsiveContainer,
   PieChart,
@@ -125,8 +126,8 @@ export default function Analytics() {
                 </option>
               ))}
             </Select>
-            <Input label="Start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            <Input label="End date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Input label="Start date" type="date" value={startDate} max={todayInputValue()} onChange={(e) => setStartDate(e.target.value)} />
+            <Input label="End date" type="date" value={endDate} max={todayInputValue()} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} />
             <Select label="Sort" value={sort} onChange={(e) => setSort(e.target.value)}>
               <option value="desc">Latest first</option>
               <option value="asc">Oldest first</option>

@@ -9,6 +9,7 @@ import Badge from "../components/ui/Badge";
 import Spinner from "../components/ui/Spinner";
 import Skeleton from "../components/ui/Skeleton";
 import { useToast } from "../components/feedback/ToastProvider.jsx";
+import { formatDisplayDate, todayInputValue } from "../utils/date.js";
 
 function currencyINR(value) {
   const n = Number(value ?? 0);
@@ -59,6 +60,23 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleDelete = async (id) => {
+    const ok = window.confirm("Delete this transaction?");
+    if (!ok) return;
+    setActionLoading(true);
+    setError("");
+    try {
+      await API.delete(`/expenses/${id}`);
+      toast.push({ tone: "success", title: "Deleted", message: "Transaction removed." });
+      await fetchData();
+    } catch (e) {
+      setError(e?.response?.data?.message || "Could not delete transaction.");
+      toast.push({ tone: "error", title: "Delete failed", message: "Please try again." });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleAdd = async () => {
     setError("");
@@ -183,6 +201,7 @@ export default function Dashboard() {
                 label="Date"
                 type="date"
                 value={form.date}
+                max={todayInputValue()}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
               <Select
@@ -241,7 +260,7 @@ export default function Dashboard() {
                       key={t.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[rgb(var(--surface))] px-4 py-3"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <div className="truncate text-sm font-extrabold text-slate-900">
                             {t?.category ?? "—"}
@@ -251,12 +270,20 @@ export default function Dashboard() {
                           </Badge>
                         </div>
                         <div className="mt-1 truncate text-xs text-slate-500">
-                          {t?.date ?? "—"} • {t?.description ?? "No description"}
+                          {formatDisplayDate(t?.date)} • {t?.description ?? "No description"}
+                        </div>
+                        <div className={["mt-1 text-sm font-extrabold", isExpense ? "text-red-600" : "text-emerald-700"].join(" ")}>
+                          {currencyINR(t?.amount)}
                         </div>
                       </div>
-                      <div className={["text-sm font-extrabold", isExpense ? "text-red-600" : "text-emerald-700"].join(" ")}>
-                        {currencyINR(t?.amount)}
-                      </div>
+                      <Button
+                        variant="ghost"
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleDelete(t.id)}
+                        disabled={actionLoading}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   );
                 })}
