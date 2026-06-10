@@ -133,6 +133,28 @@ export default function Login() {
                 A clean dashboard for income/expense balance, category
                 distribution, and monthly trends.
               </p>
+
+              {/* Mobile App Download Card */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 rounded-3xl border border-indigo-100 bg-linear-to-br from-indigo-50/50 to-emerald-50/50 p-6 shadow-xs backdrop-blur-xs">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <h3 className="font-extrabold text-slate-900 text-sm">Download SpendWise Android App</h3>
+                  <p className="mt-1 text-xs text-slate-600">Track your finances offline and sync when online!</p>
+                </div>
+                <a
+                  href="/download/spendwise-latest.apk"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>Download APK</span>
+                </a>
+              </div>
               <div className="mt-6 grid grid-cols-2 gap-3 text-sm text-slate-700">
                 <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm">
                   <div className="font-bold text-slate-900">Faster entry</div>

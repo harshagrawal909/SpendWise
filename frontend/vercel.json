@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/download/spendwise-latest.apk",
+      "destination": "https://expo.dev/artifacts/latest?projectId=5242eb14-8e60-406a-972b-d6a3115aac03&platform=android&profile=preview",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
