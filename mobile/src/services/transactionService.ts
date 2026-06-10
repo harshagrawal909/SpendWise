@@ -21,6 +21,7 @@ export type SyncState = 'synced' | 'syncing' | 'offline' | 'error';
 export interface SyncStatus {
   syncState: SyncState;
   pendingCount: number;
+  pendingIds: string[];
 }
 
 type SyncListener = (status: SyncStatus) => void;
@@ -30,24 +31,38 @@ let currentSyncState: SyncState = 'synced';
 let isSyncing = false;
 const listeners = new Set<SyncListener>();
 
-function notifyListeners(pendingCount: number) {
-  listeners.forEach((l) => l({ syncState: currentSyncState, pendingCount }));
+async function getPendingIds(): Promise<string[]> {
+  try {
+    const queueJson = await AsyncStorage.getItem(KEY_QUEUE);
+    if (!queueJson) return [];
+    const queue: QueueItem[] = JSON.parse(queueJson);
+    return queue
+      .map((item) => item.tempId || item.transactionId)
+      .filter(Boolean) as string[];
+  } catch {
+    return [];
+  }
+}
+
+async function notifyListeners(pendingCount: number) {
+  const ids = await getPendingIds();
+  listeners.forEach((l) => l({ syncState: currentSyncState, pendingCount, pendingIds: ids }));
 }
 
 export function subscribeToSyncStatus(listener: SyncListener) {
   listeners.add(listener);
   // Get initial count and notify
-  getQueueCount().then((count) => {
-    listener({ syncState: currentSyncState, pendingCount: count });
+  Promise.all([getQueueCount(), getPendingIds()]).then(([count, ids]) => {
+    listener({ syncState: currentSyncState, pendingCount: count, pendingIds: ids });
   });
   return () => {
     listeners.delete(listener);
   };
 }
 
-function updateSyncState(state: SyncState, pendingCount: number) {
+async function updateSyncState(state: SyncState, pendingCount: number) {
   currentSyncState = state;
-  notifyListeners(pendingCount);
+  await notifyListeners(pendingCount);
 }
 
 async function getQueueCount(): Promise<number> {

@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { TransactionActions } from '@/components/TransactionActions';
@@ -33,7 +34,7 @@ function parseFilterDate(value: string) {
 }
 
 export default function ExpensesScreen() {
-  const { refreshKey, notifyTransactionChange, syncState, pendingCount, triggerSync } = useTransactionRefresh();
+  const { refreshKey, notifyTransactionChange, syncState, pendingCount, pendingIds, triggerSync } = useTransactionRefresh();
   const [items, setItems] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,8 +45,6 @@ export default function ExpensesScreen() {
   const [sort, setSort] = useState('desc');
   const [editing, setEditing] = useState<Transaction | null>(null);
 
-  // We want all categories to populate the dropdown, so let's cache all transactions once to extract categories,
-  // or compile categories dynamically from the loaded items.
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const t of items) {
@@ -66,8 +65,9 @@ export default function ExpensesScreen() {
       });
       setItems(res);
     } catch (e: unknown) {
+      console.error('Error in expenses.tsx fetchList:', e);
       const err = e as { message?: string };
-      setError(err?.message ?? 'Could not load transactions.');
+      setError(err?.message ?? String(e));
     } finally {
       setLoading(false);
     }
@@ -186,12 +186,16 @@ export default function ExpensesScreen() {
           ) : items.length ? (
             items.map((t) => {
               const isExpense = (t?.type ?? 'EXPENSE') === 'EXPENSE';
+              const isPending = pendingIds.includes(t.id) || String(t.id).startsWith('temp_');
               return (
                 <View key={t.id} style={styles.txCard}>
                   <View style={styles.txCardTop}>
                     <View style={styles.txHeader}>
                       <Text style={styles.txCategory}>{t?.category ?? '—'}</Text>
                       <Badge label={isExpense ? 'Expense' : 'Income'} variant={isExpense ? 'danger' : 'success'} />
+                      {isPending ? (
+                        <Ionicons name="cloud-upload-outline" size={14} color="#F59E0B" style={styles.pendingIcon} />
+                      ) : null}
                     </View>
                     <TransactionActions
                       onEdit={() => setEditing(t)}
@@ -312,6 +316,7 @@ const styles = StyleSheet.create({
   txDate: { fontSize: 12, color: '#94A3B8' },
   txAmount: { fontSize: 16, fontWeight: '800' },
   txDesc: { fontSize: 13, color: SpendWiseTheme.muted },
+  pendingIcon: { marginLeft: 6 },
   empty: {
     borderRadius: 16,
     borderWidth: 1,

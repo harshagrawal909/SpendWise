@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { TransactionActions } from '@/components/TransactionActions';
@@ -13,7 +14,7 @@ import { SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, formatDisplayDate, type Summary, type Transaction } from '@/utils/format';
 
 export default function DashboardScreen() {
-  const { refreshKey, notifyTransactionChange, syncState, pendingCount, triggerSync } = useTransactionRefresh();
+  const { refreshKey, notifyTransactionChange, syncState, pendingCount, pendingIds, triggerSync } = useTransactionRefresh();
   const [summary, setSummary] = useState<Summary>({});
   const [recent, setRecent] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +33,9 @@ export default function DashboardScreen() {
       const sorted = [...allTransactions].sort((a, b) => String(b?.date ?? '').localeCompare(String(a?.date ?? '')));
       setRecent(sorted.slice(0, 5));
     } catch (e: unknown) {
+      console.error('Error in dashboard.tsx fetchData:', e);
       const err = e as { message?: string };
-      setError(err?.message ?? 'Could not load dashboard data.');
+      setError(err?.message ?? String(e));
     } finally {
       setLoading(false);
     }
@@ -109,12 +111,16 @@ export default function DashboardScreen() {
           ) : recent.length ? (
             recent.map((t) => {
               const isExpense = (t?.type ?? 'EXPENSE') === 'EXPENSE';
+              const isPending = pendingIds.includes(t.id) || String(t.id).startsWith('temp_');
               return (
                 <View key={t.id} style={styles.txRow}>
                   <View style={styles.txLeft}>
                     <View style={styles.txTop}>
                       <Text style={styles.txCategory}>{t?.category ?? '—'}</Text>
                       <Badge label={isExpense ? 'Expense' : 'Income'} variant={isExpense ? 'danger' : 'success'} />
+                      {isPending ? (
+                        <Ionicons name="cloud-upload-outline" size={14} color="#F59E0B" style={styles.pendingIcon} />
+                      ) : null}
                     </View>
                     <Text style={styles.txMeta}>
                       {formatDisplayDate(t?.date)} • {t?.description ?? 'No description'}
@@ -206,6 +212,7 @@ const styles = StyleSheet.create({
   txCategory: { fontSize: 14, fontWeight: '800', color: SpendWiseTheme.text },
   txMeta: { fontSize: 11, color: '#94A3B8' },
   txAmount: { fontSize: 14, fontWeight: '800' },
+  pendingIcon: { marginLeft: 6 },
   empty: {
     borderRadius: 16,
     borderWidth: 1,
