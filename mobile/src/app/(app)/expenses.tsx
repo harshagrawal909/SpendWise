@@ -20,7 +20,8 @@ import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from '@/component
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { Select } from '@/components/ui/Select';
 import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
-import API from '@/services/api';
+import { getTransactions, updateTransaction, deleteTransaction } from '@/services/transactionService';
+import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, formatDisplayDate, toDateInputValue, type Transaction } from '@/utils/format';
 
@@ -32,7 +33,7 @@ function parseFilterDate(value: string) {
 }
 
 export default function ExpensesScreen() {
-  const { refreshKey, notifyTransactionChange } = useTransactionRefresh();
+  const { refreshKey, notifyTransactionChange, syncState, pendingCount, triggerSync } = useTransactionRefresh();
   const [items, setItems] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,6 +44,8 @@ export default function ExpensesScreen() {
   const [sort, setSort] = useState('desc');
   const [editing, setEditing] = useState<Transaction | null>(null);
 
+  // We want all categories to populate the dropdown, so let's cache all transactions once to extract categories,
+  // or compile categories dynamically from the loaded items.
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const t of items) {
@@ -55,21 +58,16 @@ export default function ExpensesScreen() {
     setError('');
     setLoading(true);
     try {
-      const hasFilter = category || (startDate && endDate) || sort;
-      const res = hasFilter
-        ? await API.get('/expenses/filter', {
-            params: {
-              category: category || undefined,
-              startDate: startDate || undefined,
-              endDate: endDate || undefined,
-              sort: sort || undefined,
-            },
-          })
-        : await API.get('/expenses');
-      setItems(Array.isArray(res.data) ? res.data : []);
+      const res = await getTransactions({
+        category: category || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        sort: sort || undefined,
+      });
+      setItems(res);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Could not load transactions.');
+      const err = e as { message?: string };
+      setError(err?.message ?? 'Could not load transactions.');
     } finally {
       setLoading(false);
     }
@@ -97,12 +95,12 @@ export default function ExpensesScreen() {
         onPress: async () => {
           setActionLoading(true);
           try {
-            await API.delete(`/expenses/${id}`);
+            await deleteTransaction(id);
             notifyTransactionChange();
             await fetchList();
           } catch (e: unknown) {
-            const err = e as { response?: { data?: { message?: string } } };
-            setError(err?.response?.data?.message ?? 'Could not delete transaction.');
+            const err = e as { message?: string };
+            setError(err?.message ?? 'Could not delete transaction.');
           } finally {
             setActionLoading(false);
           }
@@ -114,17 +112,19 @@ export default function ExpensesScreen() {
   const handleSaveEdit = async (updated: TransactionFormData & { id: string }) => {
     setActionLoading(true);
     try {
-      await API.put(`/expenses/${updated.id}`, {
-        ...updated,
+      await updateTransaction(updated.id, {
         amount: Number(updated.amount),
+        category: updated.category,
         date: toDateInputValue(updated.date),
+        description: updated.description,
+        type: updated.type as 'EXPENSE' | 'INCOME',
       });
       setEditing(null);
       notifyTransactionChange();
       await fetchList();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Could not save changes.');
+      const err = e as { message?: string };
+      setError(err?.message ?? 'Could not save changes.');
     } finally {
       setActionLoading(false);
     }
@@ -134,8 +134,13 @@ export default function ExpensesScreen() {
     <ScreenContainer contentContainerStyle={styles.container}>
       <Card>
         <CardHeader>
-          <CardTitle>Expenses & income</CardTitle>
-          <CardSubtitle>Manage, filter, sort, edit, and delete transactions.</CardSubtitle>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <CardTitle>Expenses & income</CardTitle>
+              <CardSubtitle>Manage, filter, sort, edit, and delete transactions.</CardSubtitle>
+            </View>
+            <SyncStatusBadge syncState={syncState} pendingCount={pendingCount} onPress={triggerSync} />
+          </View>
         </CardHeader>
         <CardBody>
           <Select
@@ -275,6 +280,12 @@ function EditModal({
 const styles = StyleSheet.create({
   container: { paddingBottom: 100 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 8 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   error: {
     borderRadius: 12,
     borderWidth: 1,

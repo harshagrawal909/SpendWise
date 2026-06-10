@@ -12,7 +12,7 @@ import {
 import { TransactionFormFields, type TransactionFormData } from '@/components/TransactionFormFields';
 import { Button } from '@/components/ui/Button';
 import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
-import API from '@/services/api';
+import { createTransaction } from '@/services/transactionService';
 import { SpendWiseTheme } from '@/constants/theme';
 import { todayInputValue } from '@/utils/format';
 
@@ -41,12 +41,15 @@ export function AddTransactionModal() {
     setError('');
     setLoading(true);
     try {
-      await API.post('/expenses', form);
+      await createTransaction({
+        ...form,
+        type: form.type as 'EXPENSE' | 'INCOME',
+      });
       notifyTransactionChange();
       closeAddModal();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string; error?: string } } };
-      setError(err?.response?.data?.message ?? err?.response?.data?.error ?? 'Could not add transaction.');
+      const err = e as { message?: string };
+      setError(err?.message ?? 'Could not add transaction.');
     } finally {
       setLoading(false);
     }

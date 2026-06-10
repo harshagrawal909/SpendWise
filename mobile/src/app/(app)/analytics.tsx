@@ -8,7 +8,7 @@ import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from '@/component
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { Select } from '@/components/ui/Select';
 import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
-import API from '@/services/api';
+import { getTransactions } from '@/services/transactionService';
 import { PIE_COLORS, SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, toDateInputValue, type Transaction } from '@/utils/format';
 
@@ -72,18 +72,16 @@ export default function AnalyticsScreen() {
     setError('');
     setLoading(true);
     try {
-      const res = await API.get('/expenses/filter', {
-        params: {
-          category: category || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          sort: sort || undefined,
-        },
+      const res = await getTransactions({
+        category: category || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        sort: sort || undefined,
       });
-      setItems(Array.isArray(res.data) ? res.data : []);
+      setItems(res);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Could not load analytics.');
+      const err = e as { message?: string };
+      setError(err?.message ?? 'Could not load analytics.');
     } finally {
       setLoading(false);
     }

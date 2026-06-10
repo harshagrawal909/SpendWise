@@ -7,12 +7,13 @@ import { TransactionActions } from '@/components/TransactionActions';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from '@/components/ui/Card';
 import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
-import API from '@/services/api';
+import { getTransactions, getSummary, deleteTransaction } from '@/services/transactionService';
+import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, formatDisplayDate, type Summary, type Transaction } from '@/utils/format';
 
 export default function DashboardScreen() {
-  const { refreshKey, notifyTransactionChange } = useTransactionRefresh();
+  const { refreshKey, notifyTransactionChange, syncState, pendingCount, triggerSync } = useTransactionRefresh();
   const [summary, setSummary] = useState<Summary>({});
   const [recent, setRecent] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,17 +24,16 @@ export default function DashboardScreen() {
     setError('');
     setLoading(true);
     try {
-      const [summaryRes, expenseRes] = await Promise.all([
-        API.get('/expenses/summary'),
-        API.get('/expenses'),
+      const [summaryData, allTransactions] = await Promise.all([
+        getSummary(),
+        getTransactions(),
       ]);
-      setSummary(summaryRes.data ?? {});
-      const all: Transaction[] = Array.isArray(expenseRes.data) ? expenseRes.data : [];
-      const sorted = [...all].sort((a, b) => String(b?.date ?? '').localeCompare(String(a?.date ?? '')));
+      setSummary(summaryData);
+      const sorted = [...allTransactions].sort((a, b) => String(b?.date ?? '').localeCompare(String(a?.date ?? '')));
       setRecent(sorted.slice(0, 5));
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Could not load dashboard data.');
+      const err = e as { message?: string };
+      setError(err?.message ?? 'Could not load dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -61,12 +61,12 @@ export default function DashboardScreen() {
         onPress: async () => {
           setDeleting(true);
           try {
-            await API.delete(`/expenses/${id}`);
+            await deleteTransaction(id);
             notifyTransactionChange();
             await fetchData();
           } catch (e: unknown) {
-            const err = e as { response?: { data?: { message?: string } } };
-            setError(err?.response?.data?.message ?? 'Could not delete transaction.');
+            const err = e as { message?: string };
+            setError(err?.message ?? 'Could not delete transaction.');
           } finally {
             setDeleting(false);
           }
@@ -79,9 +79,12 @@ export default function DashboardScreen() {
     <ScreenContainer contentContainerStyle={styles.container}>
       {error ? <Text style={styles.errorBanner}>{error}</Text> : null}
 
-      <View>
-        <Text style={styles.pageTitle}>Dashboard</Text>
-        <Text style={styles.pageSubtitle}>Your financial overview at a glance.</Text>
+      <View style={styles.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Dashboard</Text>
+          <Text style={styles.pageSubtitle}>Your financial overview at a glance.</Text>
+        </View>
+        <SyncStatusBadge syncState={syncState} pendingCount={pendingCount} onPress={triggerSync} />
       </View>
 
       {loading ? (
@@ -149,7 +152,13 @@ function StatCard({ label, value, accent, hint }: { label: string; value: string
 }
 
 const styles = StyleSheet.create({
-  container: { paddingBottom: 100 },
+  container: { paddingBottom: 100, gap: 16 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   pageTitle: { fontSize: 22, fontWeight: '800', color: SpendWiseTheme.text },
   pageSubtitle: { fontSize: 13, color: SpendWiseTheme.muted, marginTop: 4 },
   statsGrid: {

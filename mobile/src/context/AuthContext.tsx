@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { clearAuthToken, decodeJwtEmail, getAuthToken, setAuthToken } from '@/utils/authToken';
+import { clearCache } from '@/services/transactionService';
 
 type AuthContextValue = {
   token: string | null;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await clearAuthToken();
+    await clearCache();
     setToken(null);
   }, []);
 

@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { subscribeToSyncStatus, synchronize, SyncState } from '@/services/transactionService';
 
 type TransactionRefreshContextValue = {
   refreshKey: number;
@@ -6,6 +7,9 @@ type TransactionRefreshContextValue = {
   isAddModalOpen: boolean;
   openAddModal: () => void;
   closeAddModal: () => void;
+  syncState: SyncState;
+  pendingCount: number;
+  triggerSync: () => Promise<void>;
 };
 
 const TransactionRefreshContext = createContext<TransactionRefreshContextValue | null>(null);
@@ -13,9 +17,24 @@ const TransactionRefreshContext = createContext<TransactionRefreshContextValue |
 export function TransactionRefreshProvider({ children }: { children: React.ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>('synced');
+  const [pendingCount, setPendingCount] = useState(0);
 
   const notifyTransactionChange = useCallback(() => {
     setRefreshKey((k) => k + 1);
+  }, []);
+
+  useEffect(() => {
+    // Subscribe to sync status updates from transactionService
+    const unsubscribe = subscribeToSyncStatus((status) => {
+      setSyncState(status.syncState);
+      setPendingCount(status.pendingCount);
+    });
+
+    // Auto-trigger sync on app startup
+    synchronize();
+
+    return unsubscribe;
   }, []);
 
   const value = useMemo(
@@ -25,8 +44,11 @@ export function TransactionRefreshProvider({ children }: { children: React.React
       isAddModalOpen,
       openAddModal: () => setIsAddModalOpen(true),
       closeAddModal: () => setIsAddModalOpen(false),
+      syncState,
+      pendingCount,
+      triggerSync: synchronize,
     }),
-    [refreshKey, notifyTransactionChange, isAddModalOpen],
+    [refreshKey, notifyTransactionChange, isAddModalOpen, syncState, pendingCount],
   );
 
   return <TransactionRefreshContext.Provider value={value}>{children}</TransactionRefreshContext.Provider>;
