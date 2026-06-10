@@ -24,7 +24,7 @@ export default function Login() {
 
   const handleAuthSuccess = useCallback((token) => {
     if (redirectUri) {
-      if (!redirectUri.startsWith("mobile://")) {
+      if (!redirectUri.startsWith("mobile://") && !redirectUri.startsWith("exp://") && !redirectUri.startsWith("exps://")) {
         setError("Invalid mobile redirect URL.");
         return;
       }
