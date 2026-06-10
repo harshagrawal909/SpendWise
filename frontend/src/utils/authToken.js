@@ -1,6 +1,6 @@
 const COOKIE_NAME = "spendwise_token";
 
-export function setAuthToken(token, { days = 7 } = {}) {
+export function setAuthToken(token, { days = 365 } = {}) {
   if (!token) return;
   const maxAge = Math.max(1, Math.floor(days * 24 * 60 * 60));
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(
