@@ -99,8 +99,9 @@ export default function ExpensesScreen() {
             notifyTransactionChange();
             await fetchList();
           } catch (e: unknown) {
+            console.error('Error in expenses.tsx handleDelete:', e);
             const err = e as { message?: string };
-            setError(err?.message ?? 'Could not delete transaction.');
+            setError(err?.message ?? String(e));
           } finally {
             setActionLoading(false);
           }
@@ -123,8 +124,9 @@ export default function ExpensesScreen() {
       notifyTransactionChange();
       await fetchList();
     } catch (e: unknown) {
+      console.error('Error in expenses.tsx handleSaveEdit:', e);
       const err = e as { message?: string };
-      setError(err?.message ?? 'Could not save changes.');
+      setError(err?.message ?? String(e));
     } finally {
       setActionLoading(false);
     }

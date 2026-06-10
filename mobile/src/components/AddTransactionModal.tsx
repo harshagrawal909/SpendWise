@@ -48,8 +48,9 @@ export function AddTransactionModal() {
       notifyTransactionChange();
       closeAddModal();
     } catch (e: unknown) {
+      console.error('Error in AddTransactionModal handleSave:', e);
       const err = e as { message?: string };
-      setError(err?.message ?? 'Could not add transaction.');
+      setError(err?.message ?? String(e));
     } finally {
       setLoading(false);
     }

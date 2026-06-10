@@ -65,8 +65,9 @@ export default function DashboardScreen() {
             notifyTransactionChange();
             await fetchData();
           } catch (e: unknown) {
+            console.error('Error in dashboard.tsx handleDelete:', e);
             const err = e as { message?: string };
-            setError(err?.message ?? 'Could not delete transaction.');
+            setError(err?.message ?? String(e));
           } finally {
             setDeleting(false);
           }
