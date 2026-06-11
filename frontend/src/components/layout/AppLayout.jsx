@@ -114,51 +114,56 @@ export default function AppLayout() {
       </div>
 
       {/* Footer — every page */}
-      <footer className="border-t border-slate-200 bg-slate-100 mt-4">
-        <div className="mx-auto max-w-7xl px-4 py-8">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-8">
+      <footer className="border-t border-slate-200 bg-slate-100 mt-4 min-h-[140px] flex flex-col justify-center">
+        <div className="mx-auto w-full max-w-5xl px-8 py-8">
 
-            {/* Brand */}
-            <div className="min-w-[160px]">
-              <div className="text-base font-extrabold text-slate-900">SpendWise</div>
-              <div className="text-xs text-slate-500 mt-0.5">Track smarter, spend wiser.</div>
-              <div className="mt-4">
-                <a
-                  href="/SpendWise.apk"
-                  download
-                  className="inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-2.5 text-white shadow transition hover:bg-slate-800 active:scale-95"
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white flex-shrink-0">
-                    <path d="M3 18.5v-13A1.5 1.5 0 0 1 5.2 4.1l11 6.5a1.5 1.5 0 0 1 0 2.6l-11 6.5A1.5 1.5 0 0 1 3 18.5z"/>
-                  </svg>
-                  <div className="text-left leading-none">
-                    <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Download for</div>
-                    <div className="text-sm font-bold">Android</div>
-                  </div>
-                </a>
+          {/* Main row — centered, not justify-between */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-12">
+
+            {/* Brand + Download side by side */}
+            <div className="flex items-center gap-5 flex-shrink-0">
+              <div>
+                <div className="text-base font-extrabold text-slate-900">SpendWise</div>
+                <div className="text-xs text-slate-500 mt-0.5">Track smarter, spend wiser.</div>
               </div>
+              <a
+                href="/SpendWise.apk"
+                download
+                className="inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-2.5 text-white shadow transition hover:bg-slate-800 active:scale-95 flex-shrink-0"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white flex-shrink-0">
+                  <path d="M3 18.5v-13A1.5 1.5 0 0 1 5.2 4.1l11 6.5a1.5 1.5 0 0 1 0 2.6l-11 6.5A1.5 1.5 0 0 1 3 18.5z"/>
+                </svg>
+                <div className="text-left leading-none">
+                  <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Download for</div>
+                  <div className="text-sm font-bold">Android</div>
+                </div>
+              </a>
             </div>
 
-            {/* Links */}
-            <div className="flex flex-wrap gap-10 text-sm">
+            {/* Divider */}
+            <div className="hidden sm:block w-px h-12 bg-slate-200 flex-shrink-0" />
+
+            {/* Links — centered, with breathing room */}
+            <div className="flex gap-12 text-sm">
               <div>
-                <div className="font-bold text-slate-700 mb-2 text-xs uppercase tracking-wider">Product</div>
-                <ul className="space-y-1.5 text-slate-500">
+                <div className="font-bold text-slate-700 mb-2.5 text-xs uppercase tracking-wider">Product</div>
+                <ul className="space-y-2 text-slate-500">
                   <li><a href="/dashboard" className="hover:text-slate-900 transition">Dashboard</a></li>
                   <li><a href="/expenses" className="hover:text-slate-900 transition">Expenses</a></li>
                   <li><a href="/analytics" className="hover:text-slate-900 transition">Analytics</a></li>
                 </ul>
               </div>
               <div>
-                <div className="font-bold text-slate-700 mb-2 text-xs uppercase tracking-wider">Legal</div>
-                <ul className="space-y-1.5 text-slate-500">
+                <div className="font-bold text-slate-700 mb-2.5 text-xs uppercase tracking-wider">Legal</div>
+                <ul className="space-y-2 text-slate-500">
                   <li><a href="/privacy" className="hover:text-slate-900 transition">Privacy Policy</a></li>
                   <li><a href="/terms" className="hover:text-slate-900 transition">Terms of Service</a></li>
                 </ul>
               </div>
               <div>
-                <div className="font-bold text-slate-700 mb-2 text-xs uppercase tracking-wider">Company</div>
-                <ul className="space-y-1.5 text-slate-500">
+                <div className="font-bold text-slate-700 mb-2.5 text-xs uppercase tracking-wider">Company</div>
+                <ul className="space-y-2 text-slate-500">
                   <li><a href="/contact" className="hover:text-slate-900 transition">Contact</a></li>
                   <li>
                     <a href="https://github.com/harshagrawal909" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition">GitHub</a>
@@ -168,16 +173,20 @@ export default function AppLayout() {
             </div>
           </div>
 
-          <div className="mt-8 border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+          {/* Bottom bar */}
+          <div className="mt-8 border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-xs text-slate-400">
             <span>© {new Date().getFullYear()} SpendWise. All rights reserved.</span>
-            <div className="flex gap-4">
+            <span className="hidden sm:inline text-slate-300">·</span>
+            <div className="flex gap-5">
               <a href="/privacy" className="hover:text-slate-600 transition">Privacy</a>
               <a href="/terms" className="hover:text-slate-600 transition">Terms</a>
               <a href="/contact" className="hover:text-slate-600 transition">Contact</a>
             </div>
           </div>
+
         </div>
       </footer>
+
     </div>
   );
 }
