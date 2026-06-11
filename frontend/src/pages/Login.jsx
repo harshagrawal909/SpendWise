@@ -24,13 +24,8 @@ export default function Login() {
 
   const handleAuthSuccess = useCallback((token) => {
     if (redirectUri) {
-      if (!redirectUri.startsWith("mobile://") && !redirectUri.startsWith("exp://") && !redirectUri.startsWith("exps://")) {
-        setError("Invalid mobile redirect URL.");
-        return;
-      }
-
-      const delimiter = redirectUri.includes("?") ? "&" : "?";
-      window.location.href = `${redirectUri}${delimiter}token=${encodeURIComponent(token)}`;
+      // Redirect via /app-auth page (HTTPS App Link) — avoids Android intent chooser dialog
+      window.location.href = `/app-auth?token=${encodeURIComponent(token)}`;
     } else {
       setAuthToken(token);
       navigate("/dashboard");
@@ -45,6 +40,7 @@ export default function Login() {
       handleAuthSuccess(existingToken);
     }
   }, [redirectUri, handleAuthSuccess]);
+
 
 
   const handleLogin = async () => {

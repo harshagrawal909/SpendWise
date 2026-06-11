@@ -8,14 +8,18 @@ import AppLayout from "./components/layout/AppLayout.jsx";
 import ExpensesPage from "./pages/ExpensesPage.jsx";
 import Analytics from "./pages/Analytics.jsx";
 import Profile from "./pages/Profile.jsx";
+import AppAuth from "./pages/AppAuth.jsx";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Always accessible — mobile app auth callback */}
+        <Route path="/app-auth" element={<AppAuth />} />
+        {/* /login always accessible (mobile may open it with redirect_uri) */}
+        <Route path="/login" element={<Login />} />
         <Route element={<RedirectIfAuth />}>
           <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
         </Route>
         <Route element={<RequireAuth />}>
