@@ -19,10 +19,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("AuthContext started");
     getAuthToken()
-      .then((stored) => setToken(stored))
-      .finally(() => setIsLoading(false));
+      .then((stored) => {
+        console.log("Stored token:", stored);
+        setToken(stored);
+      })
+      .catch((err) => {
+        console.log("Auth error:", err);
+      })
+      .finally(() => {
+        console.log("Loading finished");
+        setIsLoading(false);
+      });
   }, []);
+
+  
 
   const signIn = useCallback(async (nextToken: string) => {
     await setAuthToken(nextToken);

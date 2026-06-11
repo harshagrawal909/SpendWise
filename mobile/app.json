@@ -40,13 +40,17 @@
         "expo-build-properties",
         {
           "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 24,
             "buildReactNativeFromSource": true
           },
           "ios": {
             "buildReactNativeFromSource": true
           }
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true

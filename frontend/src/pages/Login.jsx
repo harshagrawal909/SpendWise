@@ -5,7 +5,7 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from "../components/ui/Card";
 import Spinner from "../components/ui/Spinner";
-import { setAuthToken } from "../utils/authToken";
+import { setAuthToken, getAuthToken } from "../utils/authToken";
 import PasswordInput from "../components/ui/PasswordInput";
 
 export default function Login() {
@@ -36,6 +36,16 @@ export default function Login() {
       navigate("/dashboard");
     }
   }, [redirectUri, navigate]);
+
+  // Auto-redirect to app if already logged in and coming from mobile
+  useEffect(() => {
+    if (!redirectUri) return;
+    const existingToken = getAuthToken();
+    if (existingToken) {
+      handleAuthSuccess(existingToken);
+    }
+  }, [redirectUri, handleAuthSuccess]);
+
 
   const handleLogin = async () => {
     setError("");
