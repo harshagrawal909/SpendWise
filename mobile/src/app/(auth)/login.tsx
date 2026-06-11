@@ -57,12 +57,15 @@ export default function LoginScreen() {
     setError('');
     setGoogleLoading(true);
     try {
-      const redirectUri = Linking.createURL('login-success');
+      // Use the HTTPS /app-auth URL as redirect URI so Chrome Custom Tab
+      // intercepts the navigation BEFORE the page loads — no error flash, no dialog
+      const redirectUri = `${webUrl}/app-auth`;
       const authUrl = `${webUrl}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
       if (result.type === 'success' && result.url) {
+        // Parse token from HTTPS URL query params
         const parsed = Linking.parse(result.url);
         const token = parsed.queryParams?.token;
         if (token) {
