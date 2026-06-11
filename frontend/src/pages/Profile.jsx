@@ -42,6 +42,10 @@ export default function Profile() {
   const [passForm, setPassForm] = useState({ currentPassword: "", newPassword: "" });
   const [loading, setLoading] = useState(false);
 
+  // Delete Account State
+  const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const displayEmail = profile?.email || email;
   const isGoogleUser = profile?.provider === "google";
   const initial = (profile?.name || displayEmail || "U").trim().charAt(0).toUpperCase();
@@ -91,6 +95,24 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await API.delete("/users/me");
+      clearAuthToken();
+      navigate("/", { replace: true });
+    } catch (err) {
+      toast.push({
+        tone: "error",
+        title: "Deletion Failed",
+        message: err?.response?.data?.message || "Could not delete account. Please try again.",
+      });
+      setDeleteStep(0);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -216,6 +238,37 @@ export default function Profile() {
           )}
         </CardBody>
       </Card>
+
+      {/* Danger Zone */}
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+        <div className="text-sm font-bold text-red-800 mb-1">Danger Zone</div>
+        <p className="text-xs text-red-600 mb-4">
+          Permanently delete your account and all expense data. This action cannot be undone.
+        </p>
+        {deleteStep === 0 ? (
+          <Button
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-100"
+            onClick={() => setDeleteStep(1)}
+          >
+            Delete Account
+          </Button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold text-red-800">Are you sure? This is permanent.</span>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? <Spinner className="h-4 w-4 border-t-white" /> : "Yes, delete everything"}
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteStep(0)} disabled={deleteLoading}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

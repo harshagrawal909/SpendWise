@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Expense from '../models/Expense.js';
 import bcrypt from 'bcryptjs';
 
 export const changePassword = async (req, res) => {
@@ -38,6 +39,19 @@ export const getMe = async (req, res) => {
             dateOfBirth: user.dateOfBirth,
             createdAt: user.createdAt
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        // Delete all expenses belonging to the user
+        await Expense.deleteMany({ user: userId });
+        // Delete the user
+        await User.findByIdAndDelete(userId);
+        res.json({ message: "Account deleted successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
