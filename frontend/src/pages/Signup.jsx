@@ -129,10 +129,12 @@ export default function Signup() {
   const navigate = useNavigate();
 
   const passwordError = useMemo(() => {
-    if (!confirmPassword) return "";
-    if (password !== confirmPassword) return "Passwords do not match.";
+    if (!password && !confirmPassword) return "";
+    if (password && password.length < 8) return "Password must be at least 8 characters.";
+    if (confirmPassword && password !== confirmPassword) return "Passwords do not match.";
     return "";
   }, [password, confirmPassword]);
+
 
   const handleSignup = async () => {
     if (passwordError || !agreed) return;
