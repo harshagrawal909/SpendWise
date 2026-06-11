@@ -141,24 +141,28 @@ export default function Login() {
               </p>
 
               {/* Mobile App Download Card */}
-              <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 rounded-3xl border border-indigo-100 bg-linear-to-br from-indigo-50/50 to-emerald-50/50 p-6 shadow-xs backdrop-blur-xs">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-5 shadow-lg">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-white shadow">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
+                    <path d="M3 18.5v-13A1.5 1.5 0 0 1 5.2 4.1l11 6.5a1.5 1.5 0 0 1 0 2.6l-11 6.5A1.5 1.5 0 0 1 3 18.5z"/>
                   </svg>
                 </div>
                 <div className="flex-1 text-center sm:text-left">
-                  <h3 className="font-extrabold text-slate-900 text-sm">Download SpendWise Android App</h3>
-                  <p className="mt-1 text-xs text-slate-600">Track your finances offline and sync when online!</p>
+                  <h3 className="font-extrabold text-white text-sm">SpendWise for Android</h3>
+                  <p className="mt-0.5 text-xs text-slate-400">Offline-first · Auto-sync · Works anywhere</p>
                 </div>
                 <a
-                  href="/download/spendwise-latest.apk"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]"
+                  href="/SpendWise.apk"
+                  download
+                  className="inline-flex items-center gap-2.5 rounded-2xl bg-white px-4 py-2.5 text-slate-900 shadow-md transition hover:bg-slate-100 active:scale-95 whitespace-nowrap"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-slate-900 flex-shrink-0">
+                    <path d="M3 18.5v-13A1.5 1.5 0 0 1 5.2 4.1l11 6.5a1.5 1.5 0 0 1 0 2.6l-11 6.5A1.5 1.5 0 0 1 3 18.5z"/>
                   </svg>
-                  <span>Download APK</span>
+                  <div className="text-left leading-none">
+                    <div className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">Download for</div>
+                    <div className="text-xs font-bold">Android</div>
+                  </div>
                 </a>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-3 text-sm text-slate-700">
