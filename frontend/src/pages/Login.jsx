@@ -265,10 +265,6 @@ export default function Login() {
                   .
                 </div>
 
-                <div className="mt-4 text-xs text-slate-500">
-                  Tip: if you’re running the backend locally, make sure it’s on{" "}
-                  <span className="font-semibold">:8081</span>.
-                </div>
               </CardBody>
             </Card>
           </div>
