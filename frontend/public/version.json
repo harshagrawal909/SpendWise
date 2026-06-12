@@ -1,6 +1,6 @@
 {
-  "versionCode": 1,
-  "versionName": "1.0.0",
-  "apkUrl": "/SpendWise.apk",
-  "releaseNotes": "Initial stable release with Google authentication redirect fix."
+  "versionCode": 2,
+  "versionName": "1.1.0",
+  "apkUrl": "/api/download/apk",
+  "releaseNotes": "Admin Portal, global notifications, and stability improvements."
 }
