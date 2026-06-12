@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, View, Modal, ScrollView, TouchableOpacity } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Badge } from '@/components/ui/Badge';
@@ -38,6 +38,14 @@ export default function ProfileScreen() {
   const [passForm, setPassForm] = useState({ currentPassword: '', newPassword: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Legal Modals State
+  const [termsVisible, setTermsVisible] = useState(false);
+  const [privacyVisible, setPrivacyVisible] = useState(false);
+
+  // Delete Account State
+  const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const displayEmail = profile?.email || email;
   const isGoogleUser = profile?.provider === 'google';
@@ -82,6 +90,144 @@ export default function ProfileScreen() {
       setLoading(false);
     }
   };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await API.delete('/users/me');
+      await signOut();
+      router.replace('/(auth)/login');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      Alert.alert('Deletion failed', err?.response?.data?.message ?? 'Could not delete account. Please try again.');
+      setDeleteStep(0);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const termsContent = (
+    <View style={styles.legalContent}>
+      <Text style={styles.legalLastUpdated}>Last updated: June 2025</Text>
+      
+      <Text style={styles.legalSectionTitle}>1. Acceptance of Terms</Text>
+      <Text style={styles.legalText}>
+        By accessing or using SpendWise (the "Service"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Service. These terms are governed by the laws of India.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>2. Eligibility</Text>
+      <Text style={styles.legalText}>
+        You must be at least 13 years of age to use SpendWise. By using the Service, you represent that you meet this requirement. If you are under 18, please ensure you have parental consent.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>3. Description of Service</Text>
+      <Text style={styles.legalText}>
+        SpendWise is a personal expense and income tracking tool. It allows you to record financial transactions, view analytics, and sync data across devices. The Service is provided free of charge.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>4. Your Account</Text>
+      <Text style={styles.legalText}>
+        • You are responsible for maintaining the confidentiality of your account credentials.{"\n"}
+        • You are responsible for all activity that occurs under your account.{"\n"}
+        • You must notify us immediately at harshagrawal4256@gmail.com if you suspect unauthorised access.{"\n"}
+        • One person may not maintain multiple accounts.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>5. Acceptable Use</Text>
+      <Text style={styles.legalText}>
+        You agree not to use the Service for any unlawful purpose, attempt to gain unauthorised access, reverse-engineer the Service, or upload malicious code or scripts.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>6. No Financial Advice</Text>
+      <Text style={styles.legalText}>
+        SpendWise is a personal tracking tool only. Nothing in the Service constitutes financial, investment, tax, or legal advice. You should consult a qualified professional before making any financial decisions.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>7. Limitation of Liability</Text>
+      <Text style={styles.legalText}>
+        To the maximum extent permitted by applicable law, SpendWise and its developers shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>8. Contact</Text>
+      <Text style={styles.legalText}>
+        Questions about these Terms? Email us at harshagrawal4256@gmail.com.
+      </Text>
+    </View>
+  );
+
+  const privacyContent = (
+    <View style={styles.legalContent}>
+      <Text style={styles.legalLastUpdated}>Last updated: June 2025</Text>
+      
+      <Text style={styles.legalSectionTitle}>1. Who We Are</Text>
+      <Text style={styles.legalText}>
+        SpendWise is a personal finance tracking application developed by Harsh Agrawal. We are based in India and operate under the Information Technology Act, 2000 and applicable Indian data protection laws.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>2. What We Collect</Text>
+      <Text style={styles.legalText}>
+        • Account information: Your email address and name (provided via email sign-up or Google Sign-In).{"\n"}
+        • Financial data: Expense and income records you manually enter into the app.{"\n"}
+        • Profile photo: Only if signing in with Google.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>3. What We Do NOT Collect</Text>
+      <Text style={styles.legalText}>
+        • Payment card or banking credentials.{"\n"}
+        • Device location or GPS data.{"\n"}
+        • Contacts or call logs.{"\n"}
+        • Analytics tracking data (no trackers).
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>4. Google Sign-In</Text>
+      <Text style={styles.legalText}>
+        SpendWise uses Google OAuth 2.0 for authentication. We access only your email address and display name. We do not access other Google services.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>5. Data Security</Text>
+      <Text style={styles.legalText}>
+        Your data is stored on secure cloud servers. We use HTTPS/TLS encryption and JWT-based authentication to protect your information.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>6. Your Rights & Deletion</Text>
+      <Text style={styles.legalText}>
+        You can view all your data within the app. You can permanently delete your account and all associated data from the Profile page at any time. All data is deleted within 24 hours.
+      </Text>
+
+      <Text style={styles.legalSectionTitle}>7. Contact</Text>
+      <Text style={styles.legalText}>
+        For privacy-related questions, email us at harshagrawal4256@gmail.com.
+      </Text>
+    </View>
+  );
+
+  const renderLegalModal = (
+    visible: boolean,
+    setVisible: (v: boolean) => void,
+    title: string,
+    content: React.ReactNode
+  ) => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={() => setVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeBtn}>
+              <Text style={styles.closeBtnText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
+            {content}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <ScreenContainer contentContainerStyle={styles.container}>
@@ -160,6 +306,71 @@ export default function ProfileScreen() {
           )}
         </CardBody>
       </Card>
+
+      {/* Legal & Policies */}
+      <Card style={{ marginTop: 16 }}>
+        <CardHeader>
+          <CardTitle>Legal & Policies</CardTitle>
+          <CardSubtitle>SpendWise terms, agreements & data privacy</CardSubtitle>
+        </CardHeader>
+        <CardBody style={{ gap: 12 }}>
+          <Button
+            title="Terms of Service"
+            variant="outline"
+            onPress={() => setTermsVisible(true)}
+          />
+          <Button
+            title="Privacy Policy"
+            variant="outline"
+            onPress={() => setPrivacyVisible(true)}
+          />
+        </CardBody>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card style={{ marginTop: 16, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }}>
+        <CardHeader>
+          <CardTitle><Text style={{ color: '#991B1B' }}>Danger Zone</Text></CardTitle>
+          <CardSubtitle>Permanently delete your profile and financial records</CardSubtitle>
+        </CardHeader>
+        <CardBody>
+          <Text style={styles.dangerText}>
+            Permanently delete your account and all expense data. This action cannot be undone.
+          </Text>
+          {deleteStep === 0 ? (
+            <Button
+              title="Delete Account"
+              variant="danger"
+              onPress={() => setDeleteStep(1)}
+              style={{ marginTop: 12 }}
+            />
+          ) : (
+            <View style={{ gap: 12, marginTop: 12 }}>
+              <Text style={styles.confirmText}>Are you sure? This is permanent.</Text>
+              <View style={styles.confirmButtons}>
+                <Button
+                  title="Yes, delete everything"
+                  variant="danger"
+                  onPress={handleDeleteAccount}
+                  loading={deleteLoading}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  onPress={() => setDeleteStep(0)}
+                  disabled={deleteLoading}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </View>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Legal Modals */}
+      {renderLegalModal(termsVisible, setTermsVisible, 'Terms of Service', termsContent)}
+      {renderLegalModal(privacyVisible, setPrivacyVisible, 'Privacy Policy', privacyContent)}
     </ScreenContainer>
   );
 }
@@ -258,4 +469,81 @@ const styles = StyleSheet.create({
     color: SpendWiseTheme.success,
     fontWeight: '600',
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '80%',
+    paddingTop: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: SpendWiseTheme.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: SpendWiseTheme.text,
+  },
+  closeBtn: {
+    padding: 8,
+  },
+  closeBtnText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: SpendWiseTheme.muted,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  legalContent: {
+    paddingBottom: 40,
+  },
+  legalLastUpdated: {
+    fontSize: 12,
+    color: SpendWiseTheme.muted,
+    marginBottom: 16,
+    fontWeight: '600',
+  },
+  legalSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: SpendWiseTheme.text,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  legalText: {
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 20,
+  },
+  dangerText: {
+    fontSize: 13,
+    color: '#7F1D1D',
+    lineHeight: 18,
+  },
+  confirmText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  confirmRow: {
+    marginTop: 12,
+    gap: 8,
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
 });
+
