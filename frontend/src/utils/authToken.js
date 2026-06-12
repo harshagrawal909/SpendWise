@@ -21,3 +21,18 @@ export function clearAuthToken() {
   document.cookie = `${COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
+/** Decode JWT payload to extract role, email, name etc. */
+export function decodeJwt() {
+  try {
+    const token = getAuthToken();
+    if (!token) return null;
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+    );
+    return payload;
+  } catch {
+    return null;
+  }
+}

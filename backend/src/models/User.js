@@ -8,7 +8,10 @@ const userSchema = new mongoose.Schema({
     googleId: { type: String },
     photoUrl: { type: String },
     emailVerified: { type: Boolean, default: false },
-    dateOfBirth: { type: Date }
+    dateOfBirth: { type: Date },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    pushTokens: [{ type: String }],
+    lastSeenAt: { type: Date }
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);

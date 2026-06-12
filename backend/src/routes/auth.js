@@ -10,7 +10,8 @@ const createToken = (user) => jwt.sign(
         id: user._id,
         email: user.email,
         name: user.name,
-        provider: user.provider
+        provider: user.provider,
+        role: user.role || 'user'
     },
     process.env.JWT_SECRET,
     { expiresIn: '365d' }
@@ -64,6 +65,8 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
+        user.lastSeenAt = new Date();
+        await user.save();
         const token = createToken(user);
         res.json({ token });
     } catch (err) {
@@ -107,7 +110,8 @@ router.post('/google', async (req, res) => {
                 provider: 'google',
                 googleId: profile.sub,
                 photoUrl: profile.picture,
-                emailVerified: true
+                emailVerified: true,
+                lastSeenAt: new Date()
             });
         } else {
             user.name = profile.name || user.name;
@@ -116,6 +120,7 @@ router.post('/google', async (req, res) => {
             user.googleId = profile.sub;
             user.photoUrl = profile.picture || user.photoUrl;
             user.emailVerified = true;
+            user.lastSeenAt = new Date();
             await user.save();
         }
 

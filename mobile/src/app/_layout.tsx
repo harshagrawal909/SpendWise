@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { SpendWiseTheme } from '@/constants/theme';
+import { registerForPushNotificationsAsync } from '@/utils/pushNotifications';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -45,7 +46,7 @@ async function checkAppUpdates() {
 }
 
 function RootLayoutNav() {
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Hide the splash screen once auth state is resolved
@@ -54,6 +55,13 @@ function RootLayoutNav() {
       checkAppUpdates();
     }
   }, [isLoading]);
+
+  // Register push notifications when authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      registerForPushNotificationsAsync();
+    }
+  }, [isLoading, isAuthenticated]);
 
   return (
     <>

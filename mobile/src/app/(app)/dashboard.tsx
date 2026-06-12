@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -12,6 +12,7 @@ import { getTransactions, getSummary, deleteTransaction } from '@/services/trans
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, formatDisplayDate, type Summary, type Transaction } from '@/utils/format';
+import { NotificationModal } from '@/components/NotificationModal';
 
 export default function DashboardScreen() {
   const { refreshKey, notifyTransactionChange, syncState, pendingCount, pendingIds, triggerSync } = useTransactionRefresh();
@@ -20,6 +21,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [notifVisible, setNotifVisible] = useState(false);
 
   const fetchData = useCallback(async () => {
     setError('');
@@ -87,6 +89,14 @@ export default function DashboardScreen() {
           <Text style={styles.pageTitle}>Dashboard</Text>
           <Text style={styles.pageSubtitle}>Your financial overview at a glance.</Text>
         </View>
+        <TouchableOpacity
+          style={styles.bellBtn}
+          onPress={() => setNotifVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="notifications-outline" size={22} color={SpendWiseTheme.text} />
+          <View style={styles.bellDot} />
+        </TouchableOpacity>
         <SyncStatusBadge syncState={syncState} pendingCount={pendingCount} onPress={triggerSync} />
       </View>
 
@@ -141,6 +151,8 @@ export default function DashboardScreen() {
           )}
         </CardBody>
       </Card>
+
+      <NotificationModal visible={notifVisible} onClose={() => setNotifVisible(false)} />
     </ScreenContainer>
   );
 }
@@ -224,4 +236,23 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 14, fontWeight: '700', color: SpendWiseTheme.text },
   emptySubtitle: { fontSize: 13, color: SpendWiseTheme.muted, marginTop: 4, textAlign: 'center' },
+  bellBtn: {
+    position: 'relative',
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: SpendWiseTheme.border,
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
+  },
 });

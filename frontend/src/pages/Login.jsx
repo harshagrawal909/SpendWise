@@ -152,8 +152,7 @@ export default function Login() {
                   <p className="mt-0.5 text-xs text-slate-400">Offline-first · Auto-sync · Works anywhere</p>
                 </div>
                 <a
-                  href="/SpendWise.apk"
-                  download
+                  href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}/api/download/apk`}
                   className="inline-flex items-center gap-2.5 rounded-2xl bg-white px-4 py-2.5 text-slate-900 shadow-md transition hover:bg-slate-100 active:scale-95 whitespace-nowrap"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 fill-slate-900 flex-shrink-0">

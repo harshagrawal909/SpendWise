@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import API from "../../services/api";
-import { clearAuthToken } from "../../utils/authToken";
+import { clearAuthToken, decodeJwt } from "../../utils/authToken";
 import Button from "../ui/Button";
 import { DownloadAppCard, DownloadAppBadge } from "../ui/DownloadApp";
+import { useState, useEffect } from "react";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -33,14 +34,27 @@ function NavItem({ to, label, onClick }) {
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const jwt = decodeJwt();
+    setIsAdmin(jwt?.role === "admin");
+  }, []);
 
   const handleLogout = async () => {
     clearAuthToken();
     navigate("/", { replace: true });
   };
 
+  const allNavItems = [
+    ...navItems,
+    ...(isAdmin
+      ? [{ to: "/admin", label: "Admin Portal" }]
+      : []),
+  ];
+
   const title =
-    navItems.find((n) => location.pathname.startsWith(n.to))?.label ??
+    allNavItems.find((n) => location.pathname.startsWith(n.to))?.label ??
     "SpendWise";
 
   return (
@@ -60,8 +74,17 @@ export default function AppLayout() {
               </div>
 
               <nav className="grid gap-1">
-                {navItems.map((n) => (
-                  <NavItem key={n.to} to={n.to} label={n.label} />
+                {allNavItems.map((n) => (
+                  <NavItem
+                    key={n.to}
+                    to={n.to}
+                    label={n.label}
+                    className={
+                      n.to === "/admin"
+                        ? "bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-200/60 text-amber-800 hover:from-amber-100 hover:to-amber-100"
+                        : undefined
+                    }
+                  />
                 ))}
               </nav>
 
@@ -102,7 +125,7 @@ export default function AppLayout() {
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                {navItems.map((n) => (
+                {allNavItems.map((n) => (
                   <NavItem key={n.to} to={n.to} label={n.label} />
                 ))}
               </div>
@@ -127,8 +150,7 @@ export default function AppLayout() {
                 <div className="text-xs text-slate-500 mt-0.5">Track smarter, spend wiser.</div>
               </div>
               <a
-                href="/SpendWise.apk"
-                download
+                href="/api/download/apk"
                 className="inline-flex items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-2.5 text-white shadow transition hover:bg-slate-800 active:scale-95 flex-shrink-0"
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white flex-shrink-0">
