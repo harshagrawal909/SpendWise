@@ -7,12 +7,14 @@ const router = express.Router();
 router.get('/apk', async (req, res) => {
     try {
         await Stats.increment('apk_downloads');
-        // Redirect to the static APK file served by the frontend
-        res.redirect('/SpendWise.apk');
+        // Redirect to the static APK file served by the frontend on Vercel
+        const frontendUrl = process.env.FRONTEND_URL || 'https://myspendwise-finance.vercel.app';
+        res.redirect(`${frontendUrl}/SpendWise.apk`);
     } catch (err) {
         // Even if counter fails, still serve the download
         console.error('Download counter error:', err.message);
-        res.redirect('/SpendWise.apk');
+        const frontendUrl = process.env.FRONTEND_URL || 'https://myspendwise-finance.vercel.app';
+        res.redirect(`${frontendUrl}/SpendWise.apk`);
     }
 });
 
