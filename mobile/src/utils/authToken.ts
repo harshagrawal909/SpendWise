@@ -48,3 +48,14 @@ export function decodeJwtEmail(token: string) {
     return '';
   }
 }
+
+export function decodeJwt(token: string) {
+  try {
+    const parts = String(token).split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload;
+  } catch {
+    return null;
+  }
+}

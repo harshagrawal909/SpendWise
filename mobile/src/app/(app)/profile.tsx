@@ -10,6 +10,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { SpendWiseTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import API from '@/services/api';
+import { AdminPortalModal } from '@/components/AdminPortalModal';
 
 type Profile = {
   name?: string;
@@ -32,7 +33,7 @@ function formatDate(value?: string) {
 }
 
 export default function ProfileScreen() {
-  const { email, signOut } = useAuth();
+  const { email, role, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [passForm, setPassForm] = useState({ currentPassword: '', newPassword: '' });
@@ -42,6 +43,9 @@ export default function ProfileScreen() {
   // Legal Modals State
   const [termsVisible, setTermsVisible] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
+
+  // Admin Portal State
+  const [adminPortalVisible, setAdminPortalVisible] = useState(false);
 
   // Delete Account State
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm
@@ -327,6 +331,23 @@ export default function ProfileScreen() {
         </CardBody>
       </Card>
 
+      {/* Admin Portal Card */}
+      {role === 'admin' && (
+        <Card style={{ marginTop: 16, borderColor: '#F59E0B', backgroundColor: '#FFFBEB' }}>
+          <CardHeader>
+            <CardTitle><Text style={{ color: '#B45309' }}>Admin Portal</Text></CardTitle>
+            <CardSubtitle>Send global push notifications and view platform stats</CardSubtitle>
+          </CardHeader>
+          <CardBody>
+            <Button
+              title="Open Admin Control Panel"
+              variant="outline"
+              onPress={() => setAdminPortalVisible(true)}
+            />
+          </CardBody>
+        </Card>
+      )}
+
       {/* Danger Zone */}
       <Card style={{ marginTop: 16, borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }}>
         <CardHeader>
@@ -371,6 +392,12 @@ export default function ProfileScreen() {
       {/* Legal Modals */}
       {renderLegalModal(termsVisible, setTermsVisible, 'Terms of Service', termsContent)}
       {renderLegalModal(privacyVisible, setPrivacyVisible, 'Privacy Policy', privacyContent)}
+
+      {/* Admin Portal Modal */}
+      <AdminPortalModal
+        visible={adminPortalVisible}
+        onClose={() => setAdminPortalVisible(false)}
+      />
     </ScreenContainer>
   );
 }

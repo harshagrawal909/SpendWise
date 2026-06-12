@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { clearAuthToken, decodeJwtEmail, getAuthToken, setAuthToken } from '@/utils/authToken';
+import { clearAuthToken, decodeJwt, getAuthToken, setAuthToken } from '@/utils/authToken';
 import { clearCache } from '@/services/transactionService';
 
 type AuthContextValue = {
   token: string | null;
   email: string;
+  role: string;
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (token: string) => Promise<void>;
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  
+
 
   const signIn = useCallback(async (nextToken: string) => {
     await setAuthToken(nextToken);
@@ -48,14 +49,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      token,
-      email: token ? decodeJwtEmail(token) : '',
-      isLoading,
-      isAuthenticated: Boolean(token),
-      signIn,
-      signOut,
-    }),
+    () => {
+      const payload = token ? decodeJwt(token) : null;
+      return {
+        token,
+        email: payload?.email ?? '',
+        role: payload?.role ?? 'user',
+        isLoading,
+        isAuthenticated: Boolean(token),
+        signIn,
+        signOut,
+      };
+    },
     [token, isLoading, signIn, signOut],
   );
 
