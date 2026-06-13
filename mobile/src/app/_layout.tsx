@@ -13,7 +13,7 @@ import { registerForPushNotificationsAsync } from '@/utils/pushNotifications';
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-const CURRENT_VERSION_CODE = 3;
+const CURRENT_VERSION_CODE = 4;
 
 function RootLayoutNav() {
   const { isLoading, isAuthenticated } = useAuth();
