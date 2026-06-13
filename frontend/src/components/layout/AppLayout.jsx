@@ -4,6 +4,7 @@ import { clearAuthToken, decodeJwt } from "../../utils/authToken";
 import Button from "../ui/Button";
 import { DownloadAppCard, DownloadAppBadge } from "../ui/DownloadApp";
 import { useState, useEffect } from "react";
+import FeedbackModal from "../feedback/FeedbackModal";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -209,6 +210,7 @@ export default function AppLayout() {
         </div>
       </footer>
 
+      <FeedbackModal />
     </div>
   );
 }

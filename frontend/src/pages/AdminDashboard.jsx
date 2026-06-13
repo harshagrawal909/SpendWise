@@ -50,6 +50,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -74,14 +75,16 @@ export default function AdminDashboard() {
     setLoading(true);
     setError("");
     try {
-      const [statsRes, usersRes, notifsRes] = await Promise.all([
+      const [statsRes, usersRes, notifsRes, feedbacksRes] = await Promise.all([
         API.get("/admin/stats"),
         API.get("/admin/users"),
         API.get("/admin/notifications"),
+        API.get("/admin/feedback"),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setNotifications(notifsRes.data);
+      setFeedbacks(feedbacksRes.data);
     } catch (e) {
       setError(
         e?.response?.data?.message || "Failed to load admin data."
@@ -90,6 +93,17 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }, []);
+
+  const handleUpdateFeedbackStatus = async (id, status) => {
+    try {
+      await API.patch(`/admin/feedback/${id}/status`, { status });
+      setFeedbacks((prev) =>
+        prev.map((f) => (f._id === id ? { ...f, status } : f))
+      );
+    } catch (e) {
+      alert("Failed to update feedback status");
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -315,6 +329,131 @@ export default function AdminDashboard() {
               ))
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Feedback Inbox Table */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm mb-6">
+        <div className="border-b border-slate-100 p-6">
+          <h2 className="text-lg font-extrabold text-slate-900">
+            📩 User Feedback Inbox
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {feedbacks.filter(f => f.status === 'unread').length} unread response(s)
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <th className="px-6 py-3">Category</th>
+                <th className="px-6 py-3">Platform</th>
+                <th className="px-6 py-3">Sender</th>
+                <th className="px-6 py-3">Message</th>
+                <th className="px-6 py-3">Submitted</th>
+                <th className="px-6 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {feedbacks.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                    No feedback submissions found.
+                  </td>
+                </tr>
+              ) : (
+                feedbacks.map((f) => (
+                  <tr
+                    key={f._id}
+                    className="border-b border-slate-50 transition hover:bg-slate-50"
+                  >
+                    <td className="px-6 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          f.type === "bug"
+                            ? "bg-red-50 text-red-600"
+                            : f.type === "feature"
+                            ? "bg-cyan-50 text-cyan-600"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {f.type === "bug" ? "🐛 Bug" : f.type === "feature" ? "💡 Feature" : "💬 Other"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          f.platform === "mobile"
+                            ? "bg-purple-50 text-purple-600"
+                            : "bg-indigo-50 text-indigo-600"
+                        }`}
+                      >
+                        {f.platform}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      {f.userId ? (
+                        <div className="flex items-center gap-2">
+                          {f.userId.photoUrl ? (
+                            <img src={f.userId.photoUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                          ) : (
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-600">
+                              {(f.userId.name || f.userId.email || "U").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold text-slate-900">{f.userId.name || "—"}</div>
+                            <div className="truncate text-[10px] text-slate-400">{f.userId.email}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-bold text-slate-900">{f.name || "Anonymous"}</div>
+                          {f.email && <div className="truncate text-[10px] text-slate-400">{f.email}</div>}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-xs text-slate-700 max-w-xs break-words">
+                      {f.message}
+                    </td>
+                    <td className="px-6 py-3 text-xs text-slate-500">
+                      {timeAgo(f.createdAt)}
+                    </td>
+                    <td className="px-6 py-3">
+                      {f.status === "unread" ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateFeedbackStatus(f._id, "resolved")}
+                            className="inline-flex h-7 items-center justify-center rounded-lg bg-emerald-50 px-2 text-[10px] font-bold text-emerald-600 hover:bg-emerald-100 transition cursor-pointer"
+                            title="Mark Resolved"
+                          >
+                            ✓ Resolve
+                          </button>
+                          <button
+                            onClick={() => handleUpdateFeedbackStatus(f._id, "archived")}
+                            className="inline-flex h-7 items-center justify-center rounded-lg bg-slate-50 px-2 text-[10px] font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                            title="Archive"
+                          >
+                            Archive
+                          </button>
+                        </div>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                            f.status === "resolved"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-200 text-slate-600"
+                          }`}
+                        >
+                          {f.status}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

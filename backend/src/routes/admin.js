@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import Stats from '../models/Stats.js';
 import Expense from '../models/Expense.js';
+import Feedback from '../models/Feedback.js';
 import authMiddleware from '../middleware/auth.js';
 import adminMiddleware from '../middleware/adminMiddleware.js';
 
@@ -149,6 +150,50 @@ router.get('/notifications', async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(50);
         res.json(notifications);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/admin/feedback — List all user feedback
+router.get('/feedback', async (req, res) => {
+    try {
+        const { status, type, platform } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+        if (type) filter.type = type;
+        if (platform) filter.platform = platform;
+
+        const feedback = await Feedback.find(filter)
+            .populate('userId', 'name email photoUrl')
+            .sort({ createdAt: -1 })
+            .limit(100);
+
+        res.json(feedback);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/admin/feedback/:id/status — Update feedback status (resolve/archive)
+router.patch('/feedback/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!status || !['unread', 'resolved', 'archived'].includes(status)) {
+            return res.status(400).json({ message: "Invalid or missing status" });
+        }
+
+        const feedback = await Feedback.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        ).populate('userId', 'name email photoUrl');
+
+        if (!feedback) {
+            return res.status(404).json({ message: "Feedback not found" });
+        }
+
+        res.json(feedback);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -11,6 +11,7 @@ import { SpendWiseTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import API from '@/services/api';
 import { AdminPortalModal } from '@/components/AdminPortalModal';
+import { FeedbackModal } from '@/components/FeedbackModal';
 
 type Profile = {
   name?: string;
@@ -43,6 +44,9 @@ export default function ProfileScreen() {
   // Legal Modals State
   const [termsVisible, setTermsVisible] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
+
+  // Help & Feedback State
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
 
   // Admin Portal State
   const [adminPortalVisible, setAdminPortalVisible] = useState(false);
@@ -331,6 +335,21 @@ export default function ProfileScreen() {
         </CardBody>
       </Card>
 
+      {/* Help & Feedback */}
+      <Card style={{ marginTop: 16 }}>
+        <CardHeader>
+          <CardTitle>Help & Feedback</CardTitle>
+          <CardSubtitle>Send bug reports, suggestions, or feedback</CardSubtitle>
+        </CardHeader>
+        <CardBody style={{ gap: 12 }}>
+          <Button
+            title="Submit Feedback"
+            variant="outline"
+            onPress={() => setFeedbackVisible(true)}
+          />
+        </CardBody>
+      </Card>
+
       {/* Admin Portal Card */}
       {role === 'admin' && (
         <Card style={{ marginTop: 16, borderColor: '#F59E0B', backgroundColor: '#FFFBEB' }}>
@@ -392,6 +411,12 @@ export default function ProfileScreen() {
       {/* Legal Modals */}
       {renderLegalModal(termsVisible, setTermsVisible, 'Terms of Service', termsContent)}
       {renderLegalModal(privacyVisible, setPrivacyVisible, 'Privacy Policy', privacyContent)}
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        visible={feedbackVisible}
+        onClose={() => setFeedbackVisible(false)}
+      />
 
       {/* Admin Portal Modal */}
       <AdminPortalModal

@@ -40,6 +40,22 @@ type PastNotification = {
   recipientCount: number;
 };
 
+type FeedbackItem = {
+  _id: string;
+  userId?: {
+    name: string;
+    email: string;
+    photoUrl?: string;
+  };
+  name?: string;
+  email?: string;
+  type: 'bug' | 'feature' | 'other';
+  message: string;
+  platform: 'web' | 'mobile';
+  status: 'unread' | 'resolved' | 'archived';
+  createdAt: string;
+};
+
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -59,12 +75,13 @@ function timeAgo(dateStr?: string): string {
 }
 
 export function AdminPortalModal({ visible, onClose }: Props) {
-  const [activeTab, setActiveTab] = useState<'stats' | 'broadcast' | 'users'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'broadcast' | 'users' | 'feedback'>('stats');
   
   // Data states
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [notifications, setNotifications] = useState<PastNotification[]>([]);
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,20 +98,31 @@ export function AdminPortalModal({ visible, onClose }: Props) {
     setLoading(true);
     setError('');
     try {
-      const [statsRes, usersRes, notifsRes] = await Promise.all([
+      const [statsRes, usersRes, notifsRes, feedbacksRes] = await Promise.all([
         API.get('/admin/stats'),
         API.get('/admin/users'),
         API.get('/admin/notifications'),
+        API.get('/admin/feedback'),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setNotifications(notifsRes.data);
+      setFeedbacks(feedbacksRes.data);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load admin dashboard data.');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleUpdateFeedbackStatus = async (id: string, status: 'unread' | 'resolved' | 'archived') => {
+    try {
+      await API.patch(`/admin/feedback/${id}/status`, { status });
+      setFeedbacks(prev => prev.map(f => f._id === id ? { ...f, status } : f));
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update feedback status');
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -187,6 +215,18 @@ export function AdminPortalModal({ visible, onClose }: Props) {
                 color={activeTab === 'users' ? '#B45309' : SpendWiseTheme.muted} 
               />
               <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>Users</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.tabButton, activeTab === 'feedback' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('feedback')}
+            >
+              <Ionicons 
+                name="chatbox-ellipses" 
+                size={16} 
+                color={activeTab === 'feedback' ? '#B45309' : SpendWiseTheme.muted} 
+              />
+              <Text style={[styles.tabText, activeTab === 'feedback' && styles.tabTextActive]}>Inbox</Text>
             </TouchableOpacity>
           </View>
 
@@ -360,6 +400,68 @@ export function AdminPortalModal({ visible, onClose }: Props) {
                           <Text style={styles.userDetailText}>
                             Seen: <Text style={{ fontWeight: '600' }}>{timeAgo(user.lastSeenAt)}</Text>
                           </Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
+
+              {/* Tab 4: FEEDBACK */}
+              {activeTab === 'feedback' && (
+                <View style={styles.tabContent}>
+                  {feedbacks.length === 0 ? (
+                    <Text style={styles.emptyText}>No feedback submissions found.</Text>
+                  ) : (
+                    feedbacks.map((f) => (
+                      <View key={f._id} style={styles.feedbackCard}>
+                        <View style={styles.feedbackHeader}>
+                          <View style={styles.feedbackMeta}>
+                            <Text style={[
+                              styles.feedbackBadge,
+                              f.type === 'bug' ? styles.badgeBug : f.type === 'feature' ? styles.badgeFeature : styles.badgeOther
+                            ]}>
+                              {f.type === 'bug' ? '🐛 Bug' : f.type === 'feature' ? '💡 Feature' : '💬 Other'}
+                            </Text>
+                            <Text style={styles.platformBadge}>{f.platform.toUpperCase()}</Text>
+                          </View>
+                          <Text style={styles.feedbackTime}>{timeAgo(f.createdAt)}</Text>
+                        </View>
+                        
+                        <Text style={styles.feedbackText}>{f.message}</Text>
+                        
+                        <View style={styles.feedbackSenderRow}>
+                          <Text style={styles.feedbackSenderText}>
+                            From: <Text style={{ fontWeight: '600' }}>
+                              {f.userId ? (f.userId.name || f.userId.email) : (f.name || 'Anonymous')}
+                            </Text>
+                          </Text>
+                        </View>
+
+                        <View style={styles.feedbackActionsRow}>
+                          {f.status === 'unread' ? (
+                            <View style={styles.actionButtonsContainer}>
+                              <TouchableOpacity
+                                style={[styles.actionBtn, styles.resolveBtn]}
+                                onPress={() => handleUpdateFeedbackStatus(f._id, 'resolved')}
+                              >
+                                <Text style={styles.resolveBtnText}>✓ Resolve</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[styles.actionBtn, styles.archiveBtn]}
+                                onPress={() => handleUpdateFeedbackStatus(f._id, 'archived')}
+                              >
+                                <Text style={styles.archiveBtnText}>Archive</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <Text style={[
+                              styles.statusLabel,
+                              f.status === 'resolved' ? styles.statusResolved : styles.statusArchived
+                            ]}>
+                              {f.status.toUpperCase()}
+                            </Text>
+                          )}
                         </View>
                       </View>
                     ))
@@ -682,5 +784,127 @@ const styles = StyleSheet.create({
   userDetailText: {
     fontSize: 11,
     color: '#64748B',
+  },
+  feedbackCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: SpendWiseTheme.border,
+    padding: 14,
+    gap: 10,
+    marginBottom: 8,
+  },
+  feedbackHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  feedbackMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  feedbackBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeBug: {
+    backgroundColor: '#FEE2E2',
+    color: '#DC2626',
+  },
+  badgeFeature: {
+    backgroundColor: '#ECFEFF',
+    color: '#0891B2',
+  },
+  badgeOther: {
+    backgroundColor: '#F1F5F9',
+    color: '#475569',
+  },
+  platformBadge: {
+    fontSize: 9,
+    fontWeight: '700',
+    backgroundColor: '#EEF2FF',
+    color: '#4F46E5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  feedbackTime: {
+    fontSize: 10,
+    color: '#94A3B8',
+  },
+  feedbackText: {
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 18,
+  },
+  feedbackSenderRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  feedbackSenderText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  senderEmail: {
+    fontSize: 10,
+    color: '#94A3B8',
+  },
+  feedbackActionsRow: {
+    marginTop: 2,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtn: {
+    flex: 1,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resolveBtn: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  resolveBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  archiveBtn: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  archiveBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  statusLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    textAlign: 'center',
+    paddingVertical: 4,
+    borderRadius: 6,
+    letterSpacing: 0.5,
+  },
+  statusResolved: {
+    backgroundColor: '#D1FAE5',
+    color: '#065F46',
+  },
+  statusArchived: {
+    backgroundColor: '#E2E8F0',
+    color: '#374151',
   },
 });
