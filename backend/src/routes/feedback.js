@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Feedback from '../models/Feedback.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -43,6 +44,49 @@ router.post('/', async (req, res) => {
         }
 
         const feedback = await Feedback.create(feedbackData);
+
+        // Find all admin users with push tokens and notify them
+        try {
+            const admins = await User.find({
+                role: 'admin',
+                pushTokens: { $exists: true, $not: { $size: 0 } }
+            }).select('pushTokens');
+
+            const allTokens = [];
+            for (const admin of admins) {
+                for (const token of admin.pushTokens) {
+                    if (token && !allTokens.includes(token)) {
+                        allTokens.push(token);
+                    }
+                }
+            }
+
+            if (allTokens.length > 0) {
+                const senderName = feedbackData.name || feedbackData.email || 'Anonymous';
+                const bodyText = `New ${feedbackData.type.toUpperCase()} from ${senderName}: "${message.slice(0, 60)}${message.length > 60 ? '...' : ''}"`;
+                const messages = allTokens.map(token => ({
+                    to: token,
+                    sound: 'default',
+                    title: '📩 New Feedback Submitted',
+                    body: bodyText,
+                    data: { type: 'feedback', feedbackId: feedback._id }
+                }));
+
+                // Call Expo Push API
+                await fetch('https://exp.host/--/api/v2/push/send', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Accept-Encoding': 'gzip, deflate',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(messages),
+                });
+            }
+        } catch (pushErr) {
+            console.error('Failed to notify admins of feedback:', pushErr.message);
+        }
+
         res.status(201).json({
             message: "Feedback submitted successfully",
             feedback
