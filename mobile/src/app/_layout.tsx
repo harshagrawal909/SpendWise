@@ -3,7 +3,8 @@ import { Alert, Linking, Modal, View, Text, StyleSheet, ActivityIndicator } from
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
+import { getContentUriAsync } from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -13,7 +14,7 @@ import { registerForPushNotificationsAsync } from '@/utils/pushNotifications';
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-const CURRENT_VERSION_CODE = 4;
+const CURRENT_VERSION_CODE = 5;
 
 function RootLayoutNav() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -26,35 +27,28 @@ function RootLayoutNav() {
     setDownloadProgress(0);
 
     const filename = 'SpendWise-Update.apk';
-    const localUri = FileSystem.documentDirectory + filename;
+    const file = new File(Paths.document, filename);
 
     try {
       // Clean up any existing update file first
-      const fileInfo = await FileSystem.getInfoAsync(localUri);
-      if (fileInfo.exists) {
-        await FileSystem.deleteAsync(localUri, { idempotent: true });
+      if (file.exists) {
+        await file.delete();
       }
 
-      const downloadResumable = FileSystem.createDownloadResumable(
-        downloadUrl,
-        localUri,
-        {},
-        (downloadProgress) => {
-          const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-          setDownloadProgress(Math.max(0, Math.min(1, progress)));
-        }
-      );
+      const downloadTask = file.createDownloadTask(downloadUrl);
+      
+      downloadTask.onProgress((progress) => {
+        const percent = progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
+        setDownloadProgress(Math.max(0, Math.min(1, percent)));
+      });
 
-      const downloadResult = await downloadResumable.downloadAsync();
-      if (!downloadResult || downloadResult.status !== 200) {
-        throw new Error(`Download failed with status ${downloadResult?.status}`);
-      }
+      await downloadTask.downloadAsync();
 
       // Start install phase
       setDownloading(false);
       setInstalling(true);
 
-      const contentUri = await FileSystem.getContentUriAsync(downloadResult.uri);
+      const contentUri = await getContentUriAsync(file.uri);
       await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
         data: contentUri,
         type: 'application/vnd.android.package-archive',

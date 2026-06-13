@@ -29,11 +29,7 @@ const PIE_COLORS = [
   "#64748b",
 ];
 
-function currencyINR(value) {
-  const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return "₹0";
-  return `₹${n.toLocaleString("en-IN")}`;
-}
+import { formatCurrency } from "../utils/currency.js";
 
 function toMonthlyData(expenses) {
   const monthly = new Map();
@@ -42,7 +38,8 @@ function toMonthlyData(expenses) {
     const date = new Date(String(e?.date));
     if (Number.isNaN(date.getTime())) continue;
     const key = date.toLocaleString("en-US", { month: "short", year: "numeric" });
-    monthly.set(key, (monthly.get(key) ?? 0) + (Number(e.amount) || 0));
+    const amount = Number(e?.convertedAmount !== undefined ? e.convertedAmount : e?.amount) || 0;
+    monthly.set(key, (monthly.get(key) ?? 0) + amount);
   }
   // sort by actual time
   return Array.from(monthly.entries())
@@ -55,7 +52,7 @@ function toCategoryData(expenses) {
   for (const e of expenses) {
     if ((e?.type ?? "EXPENSE") !== "EXPENSE") continue;
     const category = (e?.category ?? "Other").trim() || "Other";
-    const amount = Number(e?.amount ?? 0) || 0;
+    const amount = Number(e?.convertedAmount !== undefined ? e.convertedAmount : e?.amount) || 0;
     map.set(category, (map.get(category) ?? 0) + amount);
   }
   return Array.from(map.entries())
@@ -68,6 +65,7 @@ export default function Analytics() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userCurrency, setUserCurrency] = useState("INR");
 
   // same filters as /expenses/filter
   const [category, setCategory] = useState("");
@@ -88,15 +86,19 @@ export default function Analytics() {
     setError("");
     setLoading(true);
     try {
-      const res = await API.get("/expenses/filter", {
-        params: {
-          category: category || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          sort: sort || undefined,
-        },
-      });
+      const [res, userRes] = await Promise.all([
+        API.get("/expenses/filter", {
+          params: {
+            category: category || undefined,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            sort: sort || undefined,
+          },
+        }),
+        API.get("/users/me").catch(() => ({ data: { currency: "INR" } }))
+      ]);
       setItems(Array.isArray(res.data) ? res.data : []);
+      setUserCurrency(userRes.data?.currency || "INR");
     } catch (e) {
       setError(e?.response?.data?.message || "Could not load analytics.");
     } finally {
@@ -195,7 +197,7 @@ export default function Analytics() {
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(v, name) => [currencyINR(v), name]} />
+                      <Tooltip formatter={(v, name) => [formatCurrency(v, userCurrency), name]} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -240,8 +242,8 @@ export default function Analytics() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyData} margin={{ left: 8, right: 8 }}>
                     <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} width={46} tickFormatter={(v) => `₹${v}`} />
-                    <Tooltip formatter={(v) => currencyINR(v)} />
+                    <YAxis tickLine={false} axisLine={false} width={64} tickFormatter={(v) => formatCurrency(v, userCurrency)} />
+                    <Tooltip formatter={(v) => formatCurrency(v, userCurrency)} />
                     <Bar dataKey="amount" radius={[10, 10, 10, 10]} fill="#4f46e5" />
                   </BarChart>
                 </ResponsiveContainer>

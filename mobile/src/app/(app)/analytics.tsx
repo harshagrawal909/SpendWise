@@ -11,6 +11,8 @@ import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
 import { getTransactions } from '@/services/transactionService';
 import { PIE_COLORS, SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, toDateInputValue, type Transaction } from '@/utils/format';
+import API from '@/services/api';
+import { formatCurrency } from '@/utils/currency';
 
 function parseFilterDate(value: string) {
   const input = toDateInputValue(value);
@@ -26,7 +28,8 @@ function toMonthlyData(expenses: Transaction[]) {
     const date = new Date(String(e?.date));
     if (Number.isNaN(date.getTime())) continue;
     const key = date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-    monthly.set(key, (monthly.get(key) ?? 0) + (Number(e.amount) || 0));
+    const amount = Number(e?.convertedAmount !== undefined ? e.convertedAmount : e?.amount) || 0;
+    monthly.set(key, (monthly.get(key) ?? 0) + amount);
   }
   return Array.from(monthly.entries())
     .map(([month, amount]) => ({ month, amount }))
@@ -38,7 +41,7 @@ function toCategoryData(expenses: Transaction[]) {
   for (const e of expenses) {
     if ((e?.type ?? 'EXPENSE') !== 'EXPENSE') continue;
     const category = (e?.category ?? 'Other').trim() || 'Other';
-    const amount = Number(e?.amount ?? 0) || 0;
+    const amount = Number(e?.convertedAmount !== undefined ? e.convertedAmount : e?.amount) || 0;
     map.set(category, (map.get(category) ?? 0) + amount);
   }
   return Array.from(map.entries())
@@ -56,6 +59,7 @@ export default function AnalyticsScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sort, setSort] = useState('desc');
+  const [userCurrency, setUserCurrency] = useState('INR');
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -72,13 +76,17 @@ export default function AnalyticsScreen() {
     setError('');
     setLoading(true);
     try {
-      const res = await getTransactions({
-        category: category || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-        sort: sort || undefined,
-      });
+      const [res, userRes] = await Promise.all([
+        getTransactions({
+          category: category || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          sort: sort || undefined,
+        }),
+        API.get('/users/me').catch(() => ({ data: { currency: 'INR' } })),
+      ]);
       setItems(res);
+      setUserCurrency(userRes.data?.currency || 'INR');
     } catch (e: unknown) {
       const err = e as { message?: string };
       setError(err?.message ?? 'Could not load analytics.');
@@ -155,7 +163,7 @@ export default function AnalyticsScreen() {
                 <View style={styles.barLabelRow}>
                   <View style={[styles.dot, { backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }]} />
                   <Text style={styles.barLabel}>{c.category}</Text>
-                  <Text style={styles.barValue}>{currencyINR(c.amount)}</Text>
+                  <Text style={styles.barValue}>{formatCurrency(c.amount, userCurrency)}</Text>
                 </View>
                 <View style={styles.barTrack}>
                   <View
@@ -197,7 +205,7 @@ export default function AnalyticsScreen() {
                   <Text style={styles.chartMonth} numberOfLines={1}>
                     {d.month.split(' ')[0]}
                   </Text>
-                  <Text style={styles.chartAmount}>{currencyINR(d.amount)}</Text>
+                  <Text style={styles.chartAmount}>{formatCurrency(d.amount, userCurrency)}</Text>
                 </View>
               ))}
             </View>

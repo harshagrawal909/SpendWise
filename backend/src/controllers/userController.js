@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Expense from '../models/Expense.js';
 import bcrypt from 'bcryptjs';
+import { convertCurrency } from '../utils/currency.js';
 
 export const changePassword = async (req, res) => {
     try {
@@ -37,7 +38,53 @@ export const getMe = async (req, res) => {
             photoUrl: user.photoUrl,
             emailVerified: user.emailVerified,
             dateOfBirth: user.dateOfBirth,
+            role: user.role,
+            currency: user.currency || 'INR',
             createdAt: user.createdAt
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { name, currency, dateOfBirth } = req.body;
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const oldCurrency = user.currency || 'INR';
+
+        if (name) user.name = name;
+        if (dateOfBirth) user.dateOfBirth = dateOfBirth;
+
+        if (currency && currency !== oldCurrency) {
+            user.currency = currency;
+            // Recalculate convertedAmount for all existing user transactions
+            const expenses = await Expense.find({ user: user._id });
+            for (const exp of expenses) {
+                const transCurrency = exp.currency || 'INR';
+                exp.convertedAmount = await convertCurrency(exp.amount, transCurrency, currency);
+                await exp.save();
+            }
+        }
+
+        await user.save();
+        res.json({
+            message: "Profile updated successfully",
+            user: {
+                name: user.name,
+                email: user.email,
+                provider: user.provider,
+                photoUrl: user.photoUrl,
+                emailVerified: user.emailVerified,
+                dateOfBirth: user.dateOfBirth,
+                role: user.role,
+                currency: user.currency || 'INR',
+                createdAt: user.createdAt
+            }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

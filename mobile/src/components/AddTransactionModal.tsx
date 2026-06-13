@@ -15,25 +15,41 @@ import { useTransactionRefresh } from '@/context/TransactionRefreshContext';
 import { createTransaction } from '@/services/transactionService';
 import { SpendWiseTheme } from '@/constants/theme';
 import { todayInputValue } from '@/utils/format';
+import API from '@/services/api';
 
-const emptyForm = (): TransactionFormData => ({
+const emptyForm = (defaultCurrency = 'INR'): TransactionFormData => ({
   amount: '',
   category: '',
   date: todayInputValue(),
   description: '',
   type: 'EXPENSE',
+  currency: defaultCurrency,
 });
 
 export function AddTransactionModal() {
   const { isAddModalOpen, closeAddModal, notifyTransactionChange } = useTransactionRefresh();
-  const [form, setForm] = useState<TransactionFormData>(emptyForm());
+  const [userCurrency, setUserCurrency] = useState('INR');
+  const [form, setForm] = useState<TransactionFormData>(emptyForm('INR'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (isAddModalOpen) {
-      setForm(emptyForm());
       setError('');
+      setLoading(true);
+      API.get('/users/me')
+        .then((res) => {
+          const uCurr = res.data?.currency || 'INR';
+          setUserCurrency(uCurr);
+          setForm(emptyForm(uCurr));
+        })
+        .catch(() => {
+          setUserCurrency('INR');
+          setForm(emptyForm('INR'));
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
   }, [isAddModalOpen]);
 
@@ -44,6 +60,7 @@ export function AddTransactionModal() {
       await createTransaction({
         ...form,
         type: form.type as 'EXPENSE' | 'INCOME',
+        currency: form.currency || userCurrency,
       });
       notifyTransactionChange();
       closeAddModal();
@@ -67,7 +84,7 @@ export function AddTransactionModal() {
           <Text style={styles.subtitle}>Record a new income or expense</Text>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TransactionFormFields form={form} onChange={setForm} />
+            <TransactionFormFields form={form} onChange={setForm} userCurrency={userCurrency} />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <View style={styles.actions}>
               <Button title="Cancel" variant="outline" onPress={closeAddModal} disabled={loading} />

@@ -8,6 +8,7 @@ import Spinner from "../components/ui/Spinner";
 import { useToast } from "../components/feedback/ToastProvider.jsx";
 import PasswordInput from "../components/ui/PasswordInput";
 import Badge from "../components/ui/Badge";
+import { SUPPORTED_CURRENCIES } from "../utils/currency";
 
 function decodeJwtEmail(token) {
   try {
@@ -41,10 +42,32 @@ export default function Profile() {
   // Password Change State
   const [passForm, setPassForm] = useState({ currentPassword: "", newPassword: "" });
   const [loading, setLoading] = useState(false);
+  const [currencyUpdating, setCurrencyUpdating] = useState(false);
 
   // Delete Account State
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleCurrencyChange = async (newCurrency) => {
+    setCurrencyUpdating(true);
+    try {
+      const res = await API.put("/users/profile", { currency: newCurrency });
+      setProfile(res.data.user);
+      toast.push({
+        tone: "success",
+        title: "Currency Updated",
+        message: `Your default display currency is now ${newCurrency}. Past transaction totals have been converted.`,
+      });
+    } catch (err) {
+      toast.push({
+        tone: "error",
+        title: "Update Failed",
+        message: err?.response?.data?.message || "Could not update currency.",
+      });
+    } finally {
+      setCurrencyUpdating(false);
+    }
+  };
 
   const displayEmail = profile?.email || email;
   const isGoogleUser = profile?.provider === "google";
@@ -124,13 +147,33 @@ export default function Profile() {
           <CardSubtitle>Account details & session</CardSubtitle>
         </CardHeader>
         <CardBody>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Signed in as
               </div>
               <div className="mt-1 text-sm font-extrabold text-slate-900">
                 {displayEmail || "-"}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Display Currency
+              </div>
+              <div className="mt-2">
+                <select
+                  value={profile?.currency || "INR"}
+                  onChange={(e) => handleCurrencyChange(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 focus:border-indigo-500 focus:outline-none"
+                  disabled={currencyUpdating}
+                >
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

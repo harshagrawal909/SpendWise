@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import API from '@/services/api';
 import { AdminPortalModal } from '@/components/AdminPortalModal';
 import { FeedbackModal } from '@/components/FeedbackModal';
+import { SUPPORTED_CURRENCIES } from '@/utils/currency';
 
 type Profile = {
   name?: string;
@@ -48,12 +49,30 @@ export default function ProfileScreen() {
   // Help & Feedback State
   const [feedbackVisible, setFeedbackVisible] = useState(false);
 
+  // Currency Selection State
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+
   // Admin Portal State
   const [adminPortalVisible, setAdminPortalVisible] = useState(false);
 
   // Delete Account State
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleCurrencyChange = async (newCurrency: string) => {
+    setCurrencyModalVisible(false);
+    setProfileLoading(true);
+    try {
+      const res = await API.put('/users/profile', { currency: newCurrency });
+      setProfile(res.data.user);
+      Alert.alert('Currency Updated', `Your default display currency is now ${newCurrency}. Past transactions have been converted.`);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      Alert.alert('Update failed', err?.response?.data?.message ?? 'Could not update currency.');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const displayEmail = profile?.email || email;
   const isGoogleUser = profile?.provider === 'google';
@@ -209,7 +228,27 @@ export default function ProfileScreen() {
     </View>
   );
 
-  const renderLegalModal = (
+  const currencyContent = (
+    <View style={styles.legalContent}>
+      {SUPPORTED_CURRENCIES.map((c) => {
+        const isActive = (profile?.currency || 'INR') === c.code;
+        return (
+          <TouchableOpacity
+            key={c.code}
+            style={[styles.currencyItem, isActive && styles.currencyItemActive]}
+            onPress={() => handleCurrencyChange(c.code)}
+          >
+            <Text style={[styles.currencyItemText, isActive && styles.currencyItemTextActive]}>
+              {c.code} - {c.name}
+            </Text>
+            {isActive && <Text style={styles.checkMark}>✓</Text>}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  const renderModal = (
     visible: boolean,
     setVisible: (v: boolean) => void,
     title: string,
@@ -250,6 +289,19 @@ export default function ProfileScreen() {
             <Text style={styles.infoValue}>{displayEmail || '-'}</Text>
           </View>
 
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>DISPLAY CURRENCY</Text>
+            <TouchableOpacity 
+              onPress={() => setCurrencyModalVisible(true)}
+              style={styles.currencySelectRow}
+            >
+              <Text style={styles.currencySelectValue}>
+                {SUPPORTED_CURRENCIES.find(c => c.code === (profile?.currency || 'INR'))?.name || (profile?.currency || 'INR')}
+              </Text>
+              <Text style={styles.currencySelectArrow}>▼</Text>
+            </TouchableOpacity>
+          </View>
+ 
           <Button title="Logout" variant="outline" onPress={handleLogout} />
 
           {profileLoading ? (
@@ -423,6 +475,7 @@ export default function ProfileScreen() {
         visible={adminPortalVisible}
         onClose={() => setAdminPortalVisible(false)}
       />
+      {renderModal(currencyModalVisible, setCurrencyModalVisible, 'Select Display Currency', currencyContent)}
     </ScreenContainer>
   );
 }
@@ -596,6 +649,52 @@ const styles = StyleSheet.create({
   confirmButtons: {
     flexDirection: 'row',
     gap: 10,
+  },
+  currencySelectRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingVertical: 4,
+  },
+  currencySelectValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: SpendWiseTheme.text,
+  },
+  currencySelectArrow: {
+    fontSize: 12,
+    color: SpendWiseTheme.muted,
+  },
+  currencyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+  },
+  currencyItemActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: SpendWiseTheme.primary,
+  },
+  currencyItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  currencyItemTextActive: {
+    color: SpendWiseTheme.primary,
+    fontWeight: '800',
+  },
+  checkMark: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: SpendWiseTheme.primary,
   },
 });
 

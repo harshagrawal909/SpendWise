@@ -4,20 +4,24 @@ import { Input } from '@/components/ui/Input';
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { Select } from '@/components/ui/Select';
 
+import { SUPPORTED_CURRENCIES } from '@/utils/currency';
+
 export type TransactionFormData = {
   amount: string;
   category: string;
   date: string;
   description: string;
   type: string;
+  currency?: string;
 };
 
 type TransactionFormFieldsProps = {
   form: TransactionFormData;
   onChange: (form: TransactionFormData) => void;
+  userCurrency?: string;
 };
 
-export function TransactionFormFields({ form, onChange }: TransactionFormFieldsProps) {
+export function TransactionFormFields({ form, onChange, userCurrency }: TransactionFormFieldsProps) {
   return (
     <View style={styles.wrap}>
       <Input
@@ -26,6 +30,12 @@ export function TransactionFormFields({ form, onChange }: TransactionFormFieldsP
         value={form.amount}
         onChangeText={(v) => onChange({ ...form, amount: v })}
         keyboardType="decimal-pad"
+      />
+      <Select
+        label="Currency"
+        value={form.currency || userCurrency || 'INR'}
+        onValueChange={(v) => onChange({ ...form, currency: v })}
+        options={SUPPORTED_CURRENCIES.map((c) => ({ label: c.name, value: c.code }))}
       />
       <Input
         label="Category"

@@ -10,12 +10,7 @@ import Spinner from "../components/ui/Spinner";
 import Skeleton from "../components/ui/Skeleton";
 import { useToast } from "../components/feedback/ToastProvider.jsx";
 import { formatDisplayDate, todayInputValue } from "../utils/date.js";
-
-function currencyINR(value) {
-  const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return "₹0";
-  return `₹${n.toLocaleString("en-IN")}`;
-}
+import { formatCurrency, SUPPORTED_CURRENCIES } from "../utils/currency.js";
 
 export default function Dashboard() {
   const toast = useToast();
@@ -25,25 +20,35 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [recent, setRecent] = useState([]);
 
+  const [userCurrency, setUserCurrency] = useState("INR");
   const [form, setForm] = useState({
     amount: "",
     category: "",
     date: "",
     description: "",
     type: "EXPENSE",
+    currency: "",
   });
+
+  useEffect(() => {
+    if (userCurrency) {
+      setForm((prev) => ({ ...prev, currency: prev.currency || userCurrency }));
+    }
+  }, [userCurrency]);
   const navigate = useNavigate();
 
   const fetchData = async () => {
     setError("");
     setLoading(true);
     try {
-      const [summaryRes, expenseRes] = await Promise.all([
+      const [summaryRes, expenseRes, userRes] = await Promise.all([
         API.get("/expenses/summary"),
         API.get("/expenses"),
+        API.get("/users/me").catch(() => ({ data: { currency: "INR" } }))
       ]);
 
       setSummary(summaryRes.data ?? {});
+      setUserCurrency(userRes.data?.currency || "INR");
       const all = Array.isArray(expenseRes.data) ? expenseRes.data : [];
       const sorted = [...all].sort((a, b) => String(b?.date ?? "").localeCompare(String(a?.date ?? "")));
       setRecent(sorted.slice(0, 5));
@@ -82,13 +87,17 @@ export default function Dashboard() {
     setError("");
     setActionLoading(true);
     try {
-      await API.post("/expenses", form);
+      await API.post("/expenses", {
+        ...form,
+        currency: form.currency || userCurrency
+      });
       setForm({
         amount: "",
         category: "",
         date: "",
         description: "",
         type: "EXPENSE",
+        currency: userCurrency,
       });
       toast.push({ tone: "success", title: "Saved", message: "Transaction added." });
       await fetchData();
@@ -147,7 +156,7 @@ export default function Dashboard() {
               <CardBody>
                 <div className="text-sm font-semibold text-slate-600">Income</div>
                 <div className="mt-1 text-2xl font-extrabold text-slate-900">
-                  {currencyINR(quickStats.income)}
+                  {formatCurrency(quickStats.income, userCurrency)}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">Total received</div>
               </CardBody>
@@ -157,7 +166,7 @@ export default function Dashboard() {
               <CardBody>
                 <div className="text-sm font-semibold text-slate-600">Expenses</div>
                 <div className="mt-1 text-2xl font-extrabold text-slate-900">
-                  {currencyINR(quickStats.expense)}
+                  {formatCurrency(quickStats.expense, userCurrency)}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">Total spent</div>
               </CardBody>
@@ -167,7 +176,7 @@ export default function Dashboard() {
               <CardBody>
                 <div className="text-sm font-semibold text-slate-600">Balance</div>
                 <div className="mt-1 text-2xl font-extrabold text-slate-900">
-                  {currencyINR(quickStats.balance)}
+                  {formatCurrency(quickStats.balance, userCurrency)}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">Income − expenses</div>
               </CardBody>
@@ -191,6 +200,17 @@ export default function Dashboard() {
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 inputMode="decimal"
               />
+              <Select
+                label="Currency"
+                value={form.currency || userCurrency}
+                onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              >
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
               <Input
                 label="Category"
                 placeholder="e.g. Food, Rent, Salary"
@@ -273,7 +293,12 @@ export default function Dashboard() {
                           {formatDisplayDate(t?.date)} • {t?.description ?? "No description"}
                         </div>
                         <div className={["mt-1 text-sm font-extrabold", isExpense ? "text-red-600" : "text-emerald-700"].join(" ")}>
-                          {currencyINR(t?.amount)}
+                          {formatCurrency(t?.convertedAmount !== undefined ? t.convertedAmount : t?.amount, userCurrency)}
+                          {t?.currency && t.currency !== userCurrency ? (
+                            <span className="ml-2 text-xs text-slate-500 font-normal">
+                              (original {formatCurrency(t.amount, t.currency)})
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                       <Button

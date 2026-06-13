@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     emailVerified: { type: Boolean, default: false },
     dateOfBirth: { type: Date },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    currency: { type: String, default: 'INR' },
     pushTokens: [{ type: String }],
     lastSeenAt: { type: Date }
 }, { timestamps: true });

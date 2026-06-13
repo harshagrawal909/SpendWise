@@ -11,6 +11,8 @@ const expenseSchema = new mongoose.Schema(
       enum: ['INCOME', 'EXPENSE'],
       required: true
     },
+    currency: { type: String, default: 'INR' },
+    convertedAmount: { type: Number },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

@@ -8,12 +8,7 @@ import Badge from "../components/ui/Badge";
 import Spinner from "../components/ui/Spinner";
 import { useToast } from "../components/feedback/ToastProvider.jsx";
 import { formatDisplayDate, todayInputValue, toDateInputValue } from "../utils/date.js";
-
-function currencyINR(value) {
-  const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return "₹0";
-  return `₹${n.toLocaleString("en-IN")}`;
-}
+import { formatCurrency, SUPPORTED_CURRENCIES } from "../utils/currency.js";
 
 function EmptyState({ title, subtitle, action }) {
   return (
@@ -25,7 +20,7 @@ function EmptyState({ title, subtitle, action }) {
   );
 }
 
-function EditModal({ open, initial, onClose, onSave }) {
+function EditModal({ open, initial, onClose, onSave, userCurrency }) {
   const [form, setForm] = useState(initial ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -77,6 +72,17 @@ function EditModal({ open, initial, onClose, onSave }) {
               inputMode="decimal"
               placeholder="e.g. 499"
             />
+            <Select
+              label="Currency"
+              value={form.currency || userCurrency}
+              onChange={(e) => setForm({ ...form, currency: e.target.value })}
+            >
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
             <Input
               label="Category"
               value={form.category ?? ""}
@@ -141,6 +147,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [userCurrency, setUserCurrency] = useState("INR");
 
   // filters
   const [category, setCategory] = useState("");
@@ -164,18 +171,22 @@ export default function ExpensesPage() {
     setLoading(true);
     try {
       const hasFilter = category || (startDate && endDate) || sort;
-      const res = hasFilter
-        ? await API.get("/expenses/filter", {
-            params: {
-              category: category || undefined,
-              startDate: startDate || undefined,
-              endDate: endDate || undefined,
-              sort: sort || undefined,
-            },
-          })
-        : await API.get("/expenses");
+      const [res, userRes] = await Promise.all([
+        hasFilter
+          ? API.get("/expenses/filter", {
+              params: {
+                category: category || undefined,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                sort: sort || undefined,
+              },
+            })
+          : API.get("/expenses"),
+        API.get("/users/me").catch(() => ({ data: { currency: "INR" } }))
+      ]);
 
       setItems(Array.isArray(res.data) ? res.data : []);
+      setUserCurrency(userRes.data?.currency || "INR");
     } catch (e) {
       setError(e?.response?.data?.message || "Could not load transactions.");
     } finally {
@@ -336,7 +347,12 @@ export default function ExpensesPage() {
                         </div>
                         <div className="mt-1 text-xs text-slate-500">{formatDisplayDate(t?.date)}</div>
                         <div className={["mt-1 text-base font-extrabold", amountCls].join(" ")}>
-                          {currencyINR(t?.amount)}
+                          {formatCurrency(t?.convertedAmount !== undefined ? t.convertedAmount : t?.amount, userCurrency)}
+                          {t?.currency && t.currency !== userCurrency ? (
+                            <span className="ml-2 text-xs text-slate-500 font-normal">
+                              (original {formatCurrency(t.amount, t.currency)})
+                            </span>
+                          ) : null}
                         </div>
                         <div className="mt-1 text-sm text-slate-600">{t?.description ?? "—"}</div>
                       </div>
@@ -380,6 +396,7 @@ export default function ExpensesPage() {
         initial={editing}
         onClose={() => setEditing(null)}
         onSave={handleSaveEdit}
+        userCurrency={userCurrency}
       />
     </div>
   );

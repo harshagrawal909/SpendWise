@@ -25,6 +25,8 @@ import { getTransactions, updateTransaction, deleteTransaction } from '@/service
 import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { SpendWiseTheme } from '@/constants/theme';
 import { currencyINR, formatDisplayDate, toDateInputValue, type Transaction } from '@/utils/format';
+import API from '@/services/api';
+import { formatCurrency } from '@/utils/currency';
 
 function parseFilterDate(value: string) {
   const input = toDateInputValue(value);
@@ -44,6 +46,7 @@ export default function ExpensesScreen() {
   const [endDate, setEndDate] = useState('');
   const [sort, setSort] = useState('desc');
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [userCurrency, setUserCurrency] = useState('INR');
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -57,13 +60,17 @@ export default function ExpensesScreen() {
     setError('');
     setLoading(true);
     try {
-      const res = await getTransactions({
-        category: category || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-        sort: sort || undefined,
-      });
+      const [res, userRes] = await Promise.all([
+        getTransactions({
+          category: category || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          sort: sort || undefined,
+        }),
+        API.get('/users/me').catch(() => ({ data: { currency: 'INR' } })),
+      ]);
       setItems(res);
+      setUserCurrency(userRes.data?.currency || 'INR');
     } catch (e: unknown) {
       console.error('Error in expenses.tsx fetchList:', e);
       const err = e as { message?: string };
@@ -119,6 +126,7 @@ export default function ExpensesScreen() {
         date: toDateInputValue(updated.date),
         description: updated.description,
         type: updated.type as 'EXPENSE' | 'INCOME',
+        currency: updated.currency || 'INR',
       });
       setEditing(null);
       notifyTransactionChange();
@@ -205,7 +213,12 @@ export default function ExpensesScreen() {
                   </View>
                   <Text style={styles.txDate}>{formatDisplayDate(t?.date)}</Text>
                   <Text style={[styles.txAmount, { color: isExpense ? SpendWiseTheme.danger : SpendWiseTheme.success }]}>
-                    {currencyINR(t?.amount)}
+                    {formatCurrency(t?.convertedAmount !== undefined ? t.convertedAmount : t?.amount, userCurrency)}
+                    {t?.currency && t.currency !== userCurrency ? (
+                      <Text style={{ fontSize: 11, fontWeight: 'normal', color: SpendWiseTheme.muted }}>
+                        {'\n'}(original {formatCurrency(t.amount, t.currency)})
+                      </Text>
+                    ) : null}
                   </Text>
                   <Text style={styles.txDesc}>{t?.description ?? '—'}</Text>
                 </View>
@@ -226,6 +239,7 @@ export default function ExpensesScreen() {
         onClose={() => setEditing(null)}
         onSave={handleSaveEdit}
         loading={actionLoading}
+        userCurrency={userCurrency}
       />
     </ScreenContainer>
   );
@@ -243,6 +257,7 @@ function EditModal({
   onClose: () => void;
   onSave: (t: TransactionFormData & { id: string }) => Promise<void>;
   loading: boolean;
+  userCurrency: string;
 }) {
   const [form, setForm] = useState<TransactionFormData & { id: string } | null>(null);
 
@@ -255,6 +270,7 @@ function EditModal({
         date: toDateInputValue(initial.date),
         description: initial.description ?? '',
         type: initial.type ?? 'EXPENSE',
+        currency: initial.currency ?? 'INR',
       });
     } else {
       setForm(null);
@@ -271,7 +287,7 @@ function EditModal({
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>Edit transaction</Text>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TransactionFormFields form={form} onChange={(f) => setForm({ ...form, ...f })} />
+            <TransactionFormFields form={form} onChange={(f) => setForm({ ...form, ...f })} userCurrency={userCurrency} />
             <View style={styles.row}>
               <Button title="Cancel" variant="outline" onPress={onClose} disabled={loading} />
               <Button title="Save changes" onPress={() => onSave(form)} loading={loading} />

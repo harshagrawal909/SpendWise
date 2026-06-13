@@ -1,7 +1,7 @@
+import { formatCurrency } from './currency';
+
 export function currencyINR(value: unknown) {
-  const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return '₹0';
-  return `₹${n.toLocaleString('en-IN')}`;
+  return formatCurrency(value, 'INR');
 }
 
 /** Format a Date as local YYYY-MM-DD (no timezone shift). */
@@ -42,6 +42,8 @@ export type Transaction = {
   date: string;
   description?: string;
   type: 'EXPENSE' | 'INCOME';
+  currency?: string;
+  convertedAmount?: number;
 };
 
 export type Summary = {

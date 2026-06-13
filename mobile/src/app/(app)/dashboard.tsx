@@ -2,6 +2,8 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import API from '@/services/api';
+import { formatCurrency } from '@/utils/currency';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { TransactionActions } from '@/components/TransactionActions';
@@ -22,16 +24,19 @@ export default function DashboardScreen() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [notifVisible, setNotifVisible] = useState(false);
+  const [userCurrency, setUserCurrency] = useState('INR');
 
   const fetchData = useCallback(async () => {
     setError('');
     setLoading(true);
     try {
-      const [summaryData, allTransactions] = await Promise.all([
+      const [summaryData, allTransactions, userRes] = await Promise.all([
         getSummary(),
         getTransactions(),
+        API.get('/users/me').catch(() => ({ data: { currency: 'INR' } })),
       ]);
       setSummary(summaryData);
+      setUserCurrency(userRes.data?.currency || 'INR');
       const sorted = [...allTransactions].sort((a, b) => String(b?.date ?? '').localeCompare(String(a?.date ?? '')));
       setRecent(sorted.slice(0, 5));
     } catch (e: unknown) {
@@ -104,9 +109,9 @@ export default function DashboardScreen() {
         <ActivityIndicator color={SpendWiseTheme.primary} style={styles.loader} />
       ) : (
         <View style={styles.statsGrid}>
-          <StatCard label="Income" value={currencyINR(quickStats.income)} accent="#10B981" hint="Received" />
-          <StatCard label="Expenses" value={currencyINR(quickStats.expense)} accent="#EF4444" hint="Spent" />
-          <StatCard label="Balance" value={currencyINR(quickStats.balance)} accent={SpendWiseTheme.primary} hint="Net" />
+          <StatCard label="Income" value={formatCurrency(quickStats.income, userCurrency)} accent="#10B981" hint="Received" />
+          <StatCard label="Expenses" value={formatCurrency(quickStats.expense, userCurrency)} accent="#EF4444" hint="Spent" />
+          <StatCard label="Balance" value={formatCurrency(quickStats.balance, userCurrency)} accent={SpendWiseTheme.primary} hint="Net" />
         </View>
       )}
 
@@ -136,7 +141,12 @@ export default function DashboardScreen() {
                       {formatDisplayDate(t?.date)} • {t?.description ?? 'No description'}
                     </Text>
                     <Text style={[styles.txAmount, { color: isExpense ? SpendWiseTheme.danger : SpendWiseTheme.success }]}>
-                      {currencyINR(t?.amount)}
+                      {formatCurrency(t?.convertedAmount !== undefined ? t.convertedAmount : t?.amount, userCurrency)}
+                      {t?.currency && t.currency !== userCurrency ? (
+                        <Text style={{ fontSize: 10, fontWeight: 'normal', color: SpendWiseTheme.muted }}>
+                          {'\n'}(original {formatCurrency(t.amount, t.currency)})
+                        </Text>
+                      ) : null}
                     </Text>
                   </View>
                   <TransactionActions onDelete={() => handleDelete(t.id)} disabled={deleting} />
