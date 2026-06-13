@@ -53,6 +53,8 @@ type FeedbackItem = {
   message: string;
   platform: 'web' | 'mobile';
   status: 'unread' | 'resolved' | 'archived';
+  resolutionMessage?: string;
+  resolvedAt?: string;
   createdAt: string;
 };
 
@@ -123,6 +125,9 @@ export function AdminPortalModal({ visible, onClose }: Props) {
     }
   }, []);
 
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolutionText, setResolutionText] = useState('');
+
   const handleUpdateFeedbackStatus = async (id: string, status: 'unread' | 'resolved' | 'archived') => {
     try {
       await API.patch(`/admin/feedback/${id}/status`, { status });
@@ -130,6 +135,45 @@ export function AdminPortalModal({ visible, onClose }: Props) {
     } catch (err) {
       Alert.alert('Error', 'Failed to update feedback status');
     }
+  };
+
+  const handleResolveFeedback = async (id: string) => {
+    try {
+      const res = await API.patch(`/admin/feedback/${id}/status`, {
+        status: 'resolved',
+        resolutionMessage: resolutionText,
+      });
+      setFeedbacks(prev => prev.map(f => f._id === id ? res.data : f));
+      setResolvingId(null);
+      setResolutionText('');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to resolve feedback');
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this notification record?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await API.delete(`/admin/notifications/${id}`);
+              setNotifications(prev => prev.filter(n => n._id !== id));
+              // Refresh stats
+              const statsRes = await API.get('/admin/stats');
+              setStats(statsRes.data);
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete notification record');
+            }
+          }
+        }
+      ]
+    );
   };
 
   useEffect(() => {
@@ -298,7 +342,12 @@ export function AdminPortalModal({ visible, onClose }: Props) {
                       <View key={notif._id} style={styles.historyCard}>
                         <View style={styles.historyHeader}>
                           <Text style={styles.historyTitle}>{notif.title}</Text>
-                          <Text style={styles.historyTime}>{timeAgo(notif.sentAt)}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.historyTime}>{timeAgo(notif.sentAt)}</Text>
+                            <TouchableOpacity onPress={() => handleDeleteNotification(notif._id)}>
+                              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
                         </View>
                         <Text style={styles.historyBody}>{notif.body}</Text>
                         <View style={styles.historyFooter}>
@@ -437,6 +486,46 @@ export function AdminPortalModal({ visible, onClose }: Props) {
                         </View>
                         
                         <Text style={styles.feedbackText}>{f.message}</Text>
+
+                        {f.status === 'resolved' && f.resolutionMessage ? (
+                          <View style={styles.replyBox}>
+                            <Text style={styles.replyLabel}>Reply:</Text>
+                            <Text style={styles.replyText}>{f.resolutionMessage}</Text>
+                            {f.resolvedAt && (
+                              <Text style={styles.replyTime}>Resolved {timeAgo(f.resolvedAt)}</Text>
+                            )}
+                          </View>
+                        ) : null}
+
+                        {resolvingId === f._id && (
+                          <View style={styles.inlineResolveContainer}>
+                            <Text style={styles.inlineResolveLabel}>Resolution Reply (Optional):</Text>
+                            <TextInput
+                              style={styles.inlineResolveInput}
+                              placeholder="Type response to user..."
+                              value={resolutionText}
+                              onChangeText={setResolutionText}
+                              multiline
+                            />
+                            <View style={styles.inlineResolveButtons}>
+                              <TouchableOpacity
+                                style={[styles.inlineResolveBtn, styles.inlineResolveCancel]}
+                                onPress={() => {
+                                  setResolvingId(null);
+                                  setResolutionText('');
+                                }}
+                              >
+                                <Text style={styles.inlineResolveCancelText}>Cancel</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[styles.inlineResolveBtn, styles.inlineResolveSubmit]}
+                                onPress={() => handleResolveFeedback(f._id)}
+                              >
+                                <Text style={styles.inlineResolveSubmitText}>Submit</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        )}
                         
                         <View style={styles.feedbackSenderRow}>
                           <Text style={styles.feedbackSenderText}>
@@ -451,7 +540,10 @@ export function AdminPortalModal({ visible, onClose }: Props) {
                             <View style={styles.actionButtonsContainer}>
                               <TouchableOpacity
                                 style={[styles.actionBtn, styles.resolveBtn]}
-                                onPress={() => handleUpdateFeedbackStatus(f._id, 'resolved')}
+                                onPress={() => {
+                                  setResolvingId(f._id);
+                                  setResolutionText('');
+                                }}
                               >
                                 <Text style={styles.resolveBtnText}>✓ Resolve</Text>
                               </TouchableOpacity>
@@ -914,5 +1006,83 @@ const styles = StyleSheet.create({
   statusArchived: {
     backgroundColor: '#E2E8F0',
     color: '#374151',
+  },
+  replyBox: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 8,
+    gap: 2,
+  },
+  replyLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065F46',
+    textTransform: 'uppercase',
+  },
+  replyText: {
+    fontSize: 12,
+    color: '#065F46',
+  },
+  replyTime: {
+    fontSize: 9,
+    color: '#059669',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  inlineResolveContainer: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 8,
+    gap: 8,
+  },
+  inlineResolveLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563EB',
+    textTransform: 'uppercase',
+  },
+  inlineResolveInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 12,
+    color: SpendWiseTheme.text,
+    textAlignVertical: 'top',
+    minHeight: 50,
+  },
+  inlineResolveButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  inlineResolveBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  inlineResolveCancel: {
+    backgroundColor: '#E5E7EB',
+  },
+  inlineResolveCancelText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  inlineResolveSubmit: {
+    backgroundColor: '#2563EB',
+  },
+  inlineResolveSubmitText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

@@ -94,6 +94,9 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const [resolvingId, setResolvingId] = useState(null);
+  const [resolutionText, setResolutionText] = useState("");
+
   const handleUpdateFeedbackStatus = async (id, status) => {
     try {
       await API.patch(`/admin/feedback/${id}/status`, { status });
@@ -102,6 +105,34 @@ export default function AdminDashboard() {
       );
     } catch (e) {
       alert("Failed to update feedback status");
+    }
+  };
+
+  const handleResolveFeedback = async (id) => {
+    try {
+      const res = await API.patch(`/admin/feedback/${id}/status`, {
+        status: "resolved",
+        resolutionMessage: resolutionText,
+      });
+      setFeedbacks((prev) =>
+        prev.map((f) => (f._id === id ? res.data : f))
+      );
+      setResolvingId(null);
+      setResolutionText("");
+    } catch (e) {
+      alert("Failed to resolve feedback");
+    }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this notification record?")) return;
+    try {
+      await API.delete(`/admin/notifications/${id}`);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      const statsRes = await API.get("/admin/stats");
+      setStats(statsRes.data);
+    } catch (e) {
+      alert("Failed to delete notification record");
     }
   };
 
@@ -305,7 +336,7 @@ export default function AdminDashboard() {
               notifications.map((n) => (
                 <div
                   key={n._id}
-                  className="rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:bg-slate-100"
+                  className="group relative rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:bg-slate-100"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -316,13 +347,20 @@ export default function AdminDashboard() {
                         {n.body}
                       </div>
                     </div>
-                    <div className="flex-shrink-0 text-right">
+                    <div className="flex-shrink-0 text-right flex flex-col items-end">
                       <div className="text-[10px] font-semibold text-slate-400">
                         {timeAgo(n.createdAt)}
                       </div>
                       <div className="mt-0.5 text-[10px] text-slate-400">
                         {n.recipientCount ?? 0} sent
                       </div>
+                      <button
+                        onClick={() => handleDeleteNotification(n._id)}
+                        className="mt-2 text-[10px] font-bold text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                        title="Delete record"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -414,7 +452,49 @@ export default function AdminDashboard() {
                       )}
                     </td>
                     <td className="px-6 py-3 text-xs text-slate-700 max-w-xs break-words">
-                      {f.message}
+                      <div>{f.message}</div>
+                      {f.status === "resolved" && f.resolutionMessage && (
+                        <div className="mt-1.5 text-[10px] bg-emerald-50 text-emerald-800 rounded-lg p-2 border border-emerald-100/50">
+                          <span className="font-bold">Reply: </span>
+                          {f.resolutionMessage}
+                          {f.resolvedAt && (
+                            <span className="text-[9px] text-emerald-600 block mt-0.5 font-medium">
+                              Resolved {timeAgo(f.resolvedAt)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {resolvingId === f._id && (
+                        <div className="mt-2 space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-2.5">
+                          <label className="block text-[9px] font-bold uppercase tracking-wider text-indigo-700">
+                            Resolution Message (Optional)
+                          </label>
+                          <textarea
+                            value={resolutionText}
+                            onChange={(e) => setResolutionText(e.target.value)}
+                            placeholder="Type resolution reply to user..."
+                            rows={2}
+                            className="w-full resize-none rounded-lg border border-indigo-200 bg-white p-2 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 font-medium"
+                          />
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setResolvingId(null);
+                                setResolutionText("");
+                              }}
+                              className="rounded bg-slate-200 px-2 py-1 text-[9px] font-bold text-slate-700 hover:bg-slate-300 transition cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleResolveFeedback(f._id)}
+                              className="rounded bg-indigo-600 px-2.5 py-1 text-[9px] font-bold text-white hover:bg-indigo-700 transition cursor-pointer"
+                            >
+                              Submit
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-xs text-slate-500">
                       {timeAgo(f.createdAt)}
@@ -423,7 +503,10 @@ export default function AdminDashboard() {
                       {f.status === "unread" ? (
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleUpdateFeedbackStatus(f._id, "resolved")}
+                            onClick={() => {
+                              setResolvingId(f._id);
+                              setResolutionText("");
+                            }}
                             className="inline-flex h-7 items-center justify-center rounded-lg bg-emerald-50 px-2 text-[10px] font-bold text-emerald-600 hover:bg-emerald-100 transition cursor-pointer"
                             title="Mark Resolved"
                           >

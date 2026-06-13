@@ -1,52 +1,29 @@
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { PasswordInput } from '@/components/ui/PasswordInput';
 import { SpendWiseTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import API from '@/services/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
-  const passwordRef = useRef<TextInput>(null);
   const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
-
-  const handleLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const res = await API.post('/auth/login', { email, password });
-      await signIn(res.data.token);
-      router.replace('/(app)/dashboard');
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleLogin = async () => {
     if (!webUrl) {
@@ -109,39 +86,8 @@ export default function LoginScreen() {
               <CardTitle>Welcome back</CardTitle>
               <CardSubtitle>Sign in to continue to your dashboard.</CardSubtitle>
             </CardHeader>
-            <CardBody>
-              <Input
-                label="Email"
-                placeholder="you@example.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-                returnKeyType="next"
-                blurOnSubmit={false}
-                onSubmitEditing={() => passwordRef.current?.focus()}
-              />
-              <PasswordInput
-                ref={passwordRef}
-                label="Password"
-                placeholder="Your password"
-                value={password}
-                onChangeText={setPassword}
-                autoComplete="password"
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
-
+            <CardBody style={{ gap: 16 }}>
               {error ? <Text style={styles.error}>{error}</Text> : null}
-
-              <Button title={loading ? 'Signing in...' : 'Sign in'} onPress={handleLogin} loading={loading} />
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-              </View>
 
               <Button
                 title={googleLoading ? 'Signing in with Google...' : 'Sign in with Google'}
@@ -150,13 +96,6 @@ export default function LoginScreen() {
                 loading={googleLoading}
                 disabled={googleLoading}
               />
-
-              <Text style={styles.footer}>
-                Don&apos;t have an account?{' '}
-                <Link href="/(auth)/signup" style={styles.link}>
-                  Create one
-                </Link>
-              </Text>
             </CardBody>
           </Card>
         </ScrollView>

@@ -10,6 +10,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/expenses", label: "Expenses" },
   { to: "/analytics", label: "Analytics" },
+  { to: "/csv", label: "Export CSV" },
   { to: "/profile", label: "Profile" },
 ];
 

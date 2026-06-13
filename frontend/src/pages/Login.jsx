@@ -1,17 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import API from "../services/api";
-import { Link, useNavigate } from "react-router-dom";
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
+import { useNavigate } from "react-router-dom";
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from "../components/ui/Card";
-import Spinner from "../components/ui/Spinner";
 import { setAuthToken, getAuthToken } from "../utils/authToken";
-import PasswordInput from "../components/ui/PasswordInput";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const googleButtonRef = useRef(null);
@@ -40,24 +33,6 @@ export default function Login() {
       handleAuthSuccess(existingToken);
     }
   }, [redirectUri, handleAuthSuccess]);
-
-
-
-  const handleLogin = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const res = await API.post("/auth/login", { email, password });
-      handleAuthSuccess(res.data.token);
-    } catch (e) {
-      setError(
-        e?.response?.data?.message ||
-          "Login failed. Please check your credentials and try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleCredential = useCallback(async (credential) => {
     setError("");
@@ -185,85 +160,23 @@ export default function Login() {
                 <CardTitle>Welcome back</CardTitle>
                 <CardSubtitle>Sign in to continue to your dashboard.</CardSubtitle>
               </CardHeader>
-              <CardBody>
-                <form
-                  className="space-y-4"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleLogin();
-                  }}
-                >
-                  <Input
-                    label="Email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    inputMode="email"
-                    required
-                  />
-
-                  <PasswordInput
-                    label="Password"
-                    placeholder="Your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-
-                  {error ? (
-                    <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                      {error}
-                    </div>
-                  ) : null}
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Spinner className="h-4 w-4 border-t-white" />
-                        Signing in…
-                      </>
-                    ) : (
-                      "Sign in"
-                    )}
-                  </Button>
-                </form>
-
-                <div className="my-4 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-slate-200" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Or
-                  </span>
-                  <div className="h-px flex-1 bg-slate-200" />
-                </div>
+              <CardBody className="space-y-4">
+                {error ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
 
                 {googleClientId ? (
                   <div
                     ref={googleButtonRef}
-                    className={googleLoading ? "pointer-events-none opacity-70" : ""}
+                    className={googleLoading ? "pointer-events-none opacity-70 w-full flex justify-center" : "w-full flex justify-center"}
                   />
                 ) : (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     Add VITE_GOOGLE_CLIENT_ID to enable Google sign-in.
                   </div>
                 )}
-
-                <div className="mt-4 text-sm text-slate-600">
-                  Don&apos;t have an account?{" "}
-                  <Link
-                    to="/signup"
-                    className="font-semibold text-indigo-700 hover:text-indigo-600"
-                  >
-                    Create one
-                  </Link>
-                  .
-                </div>
-
               </CardBody>
             </Card>
           </div>

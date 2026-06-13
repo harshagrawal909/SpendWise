@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
-import Signup from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard";
 import RequireAuth from "./components/auth/RequireAuth.jsx";
 import RedirectIfAuth from "./components/auth/RedirectIfAuth.jsx";
@@ -13,6 +12,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import TermsOfService from "./pages/TermsOfService.jsx";
 import Contact from "./pages/Contact.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
+import CsvExport from "./pages/CsvExport.jsx";
 
 function App() {
   return (
@@ -28,7 +28,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<RedirectIfAuth />}>
           <Route path="/" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/signup" element={<Navigate to="/" replace />} />
         </Route>
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
@@ -36,6 +36,7 @@ function App() {
             <Route path="/expenses" element={<ExpensesPage />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/csv" element={<CsvExport />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>

@@ -13,6 +13,7 @@ function AppTabs() {
     <View style={styles.container}>
       <Tabs
         screenOptions={{
+          headerShown: false,
           headerStyle: { backgroundColor: SpendWiseTheme.surface },
           headerTitleStyle: { fontWeight: '800', color: SpendWiseTheme.text },
           headerShadowVisible: false,
@@ -43,6 +44,13 @@ function AppTabs() {
           options={{
             title: 'Analytics',
             tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="csv"
+          options={{
+            title: 'Export',
+            tabBarIcon: ({ color, size }) => <Ionicons name="download-outline" size={size} color={color} />,
           }}
         />
         <Tabs.Screen

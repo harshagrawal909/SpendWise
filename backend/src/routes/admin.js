@@ -146,10 +146,25 @@ router.post('/notifications', async (req, res) => {
 // GET /api/admin/notifications — List all sent notifications
 router.get('/notifications', async (req, res) => {
     try {
+        // Backup auto-deletion: delete notifications older than 2 days
+        await Notification.deleteMany({ sentAt: { $lt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) } });
         const notifications = await Notification.find()
             .sort({ createdAt: -1 })
             .limit(50);
         res.json(notifications);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /api/admin/notifications/:id — Delete a notification record
+router.delete('/notifications/:id', async (req, res) => {
+    try {
+        const notif = await Notification.findByIdAndDelete(req.params.id);
+        if (!notif) {
+            return res.status(404).json({ message: "Notification not found" });
+        }
+        res.json({ message: "Notification deleted successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -178,19 +193,82 @@ router.get('/feedback', async (req, res) => {
 // PATCH /api/admin/feedback/:id/status — Update feedback status (resolve/archive)
 router.patch('/feedback/:id/status', async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, resolutionMessage } = req.body;
         if (!status || !['unread', 'resolved', 'archived'].includes(status)) {
             return res.status(400).json({ message: "Invalid or missing status" });
         }
 
+        const updateData = { status };
+        if (status === 'resolved') {
+            updateData.resolutionMessage = resolutionMessage || '';
+            updateData.resolvedAt = new Date();
+        }
+
         const feedback = await Feedback.findByIdAndUpdate(
             req.params.id,
-            { status },
+            updateData,
             { new: true }
-        ).populate('userId', 'name email photoUrl');
+        ).populate('userId', 'name email photoUrl pushTokens');
 
         if (!feedback) {
             return res.status(404).json({ message: "Feedback not found" });
+        }
+
+        // If resolved, send push notification and optional email to user
+        if (status === 'resolved') {
+            const replyMsg = resolutionMessage || 'Thank you! Your feedback has been resolved.';
+            
+            // 1. Send Push Notification via Expo
+            if (feedback.userId && Array.isArray(feedback.userId.pushTokens) && feedback.userId.pushTokens.length > 0) {
+                const messages = feedback.userId.pushTokens.map(pushToken => ({
+                    to: pushToken,
+                    sound: 'default',
+                    title: '📢 Feedback Response',
+                    body: `Admin replied: "${replyMsg}"`,
+                    data: { type: 'feedback_resolved', feedbackId: feedback._id }
+                }));
+
+                try {
+                    await fetch('https://exp.host/--/api/v2/push/send', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Accept-Encoding': 'gzip, deflate',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(messages),
+                    });
+                } catch (pushErr) {
+                    console.error('Expo push error for feedback resolution:', pushErr.message);
+                }
+            }
+
+            // 2. Send optional email using nodemailer
+            const userEmail = feedback.email || feedback.userId?.email;
+            if (userEmail && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                try {
+                    const nodemailer = await import('nodemailer');
+                    const transporter = (nodemailer.default || nodemailer).createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS,
+                        },
+                    });
+
+                    const mailOptions = {
+                        from: `"SpendWise Admin" <${process.env.EMAIL_USER}>`,
+                        to: userEmail,
+                        subject: 'SpendWise Feedback Resolution',
+                        text: `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`,
+                        html: `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`,
+                    };
+
+                    await transporter.sendMail(mailOptions);
+                } catch (emailErr) {
+                    console.error('Nodemailer error for feedback resolution:', emailErr.message);
+                }
+            }
         }
 
         res.json(feedback);

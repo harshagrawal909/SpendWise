@@ -6,7 +6,6 @@ import Button from "../components/ui/Button";
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from "../components/ui/Card";
 import Spinner from "../components/ui/Spinner";
 import { useToast } from "../components/feedback/ToastProvider.jsx";
-import PasswordInput from "../components/ui/PasswordInput";
 import Badge from "../components/ui/Badge";
 import { SUPPORTED_CURRENCIES } from "../utils/currency";
 
@@ -39,9 +38,6 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
-  // Password Change State
-  const [passForm, setPassForm] = useState({ currentPassword: "", newPassword: "" });
-  const [loading, setLoading] = useState(false);
   const [currencyUpdating, setCurrencyUpdating] = useState(false);
 
   // Delete Account State
@@ -97,29 +93,7 @@ export default function Profile() {
     navigate("/", { replace: true });
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (!passForm.currentPassword || !passForm.newPassword) return;
 
-    setLoading(true);
-    try {
-      await API.put("/users/change-password", passForm);
-      toast.push({
-        tone: "success",
-        title: "Success",
-        message: "Password updated successfully!",
-      });
-      setPassForm({ currentPassword: "", newPassword: "" });
-    } catch (err) {
-      toast.push({
-        tone: "error",
-        title: "Update Failed",
-        message: err?.response?.data?.message || "Could not change password.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     setDeleteLoading(true);
@@ -191,7 +165,7 @@ export default function Profile() {
             <div className="mt-6 rounded-2xl border border-slate-200 bg-[rgb(var(--surface))] p-4">
               <Spinner className="h-5 w-5" />
             </div>
-          ) : isGoogleUser ? (
+          ) : (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-[rgb(var(--surface))] p-4">
               <div className="flex flex-wrap items-center gap-4">
                 {profile?.photoUrl ? (
@@ -210,7 +184,7 @@ export default function Profile() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-lg font-extrabold text-slate-900">
-                      {profile?.name || "Google user"}
+                      {profile?.name || "User"}
                     </div>
                     {profile?.emailVerified ? <Badge variant="success">Verified</Badge> : null}
                   </div>
@@ -254,29 +228,6 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-[rgb(var(--surface))] p-4">
-              <div className="text-sm font-bold text-slate-900">
-                Security
-              </div>
-              <form onSubmit={handleChangePassword} className="mt-4 grid max-w-md gap-4">
-                <PasswordInput
-                  label="Current Password"
-                  required
-                  value={passForm.currentPassword}
-                  onChange={(e) => setPassForm({ ...passForm, currentPassword: e.target.value })}
-                />
-                <PasswordInput
-                  label="New Password"
-                  required
-                  value={passForm.newPassword}
-                  onChange={(e) => setPassForm({ ...passForm, newPassword: e.target.value })}
-                />
-                <Button type="submit" disabled={loading}>
-                  {loading ? <Spinner className="h-4 w-4 border-t-white" /> : "Update Password"}
-                </Button>
-              </form>
             </div>
           )}
         </CardBody>

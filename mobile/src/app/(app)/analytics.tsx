@@ -199,7 +199,7 @@ export default function AnalyticsScreen() {
                   <View
                     style={[
                       styles.chartBar,
-                      { height: Math.max(8, (d.amount / maxMonthly) * 120), backgroundColor: SpendWiseTheme.primary },
+                      { height: Math.max(8, (d.amount / maxMonthly) * 120), backgroundColor: '#ef4444' },
                     ]}
                   />
                   <Text style={styles.chartMonth} numberOfLines={1}>

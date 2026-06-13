@@ -29,49 +29,12 @@ const getGoogleClientIds = () => [
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: "Name, email, and password are required" });
-        }
-        if (password.length < 8) {
-            return res.status(400).json({ message: "Password must be at least 8 characters" });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 12);
-        await User.create({
-            name,
-            email: String(email).toLowerCase(),
-            password: hashedPassword,
-            provider: 'local'
-        });
-        res.status(201).json({ message: "User registered successfully" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    return res.status(400).json({ message: "Password registration is disabled. Please sign in with Google." });
 });
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email: String(email || '').toLowerCase() });
-
-        if (user?.provider === 'google' && !user.password) {
-            return res.status(400).json({ message: "Please sign in with Google." });
-        }
-
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(400).json({ message: "Invalid credentials" });
-        }
-
-        user.lastSeenAt = new Date();
-        await user.save();
-        const token = createToken(user);
-        res.json({ token });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    return res.status(400).json({ message: "Password login is disabled. Please sign in with Google." });
 });
 
 // POST /api/auth/google
@@ -116,7 +79,7 @@ router.post('/google', async (req, res) => {
         } else {
             user.name = profile.name || user.name;
             user.email = email;
-            user.provider = user.password ? user.provider : 'google';
+            user.provider = 'google';
             user.googleId = profile.sub;
             user.photoUrl = profile.picture || user.photoUrl;
             user.emailVerified = true;

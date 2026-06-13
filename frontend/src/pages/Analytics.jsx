@@ -244,7 +244,7 @@ export default function Analytics() {
                     <XAxis dataKey="month" tickLine={false} axisLine={false} />
                     <YAxis tickLine={false} axisLine={false} width={64} tickFormatter={(v) => formatCurrency(v, userCurrency)} />
                     <Tooltip formatter={(v) => formatCurrency(v, userCurrency)} />
-                    <Bar dataKey="amount" radius={[10, 10, 10, 10]} fill="#4f46e5" />
+                    <Bar dataKey="amount" radius={[10, 10, 10, 10]} fill="#ef4444" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

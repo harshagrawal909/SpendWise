@@ -6,7 +6,6 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from '@/components/ui/Card';
-import { PasswordInput } from '@/components/ui/PasswordInput';
 import { SpendWiseTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import API from '@/services/api';
@@ -53,9 +52,6 @@ export default function ProfileScreen() {
   const { email, role, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [passForm, setPassForm] = useState({ currentPassword: '', newPassword: '' });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
 
   // Legal Modals State
   const [termsVisible, setTermsVisible] = useState(false);
@@ -117,21 +113,7 @@ export default function ProfileScreen() {
     router.replace('/(auth)/login');
   };
 
-  const handleChangePassword = async () => {
-    if (!passForm.currentPassword || !passForm.newPassword) return;
-    setLoading(true);
-    setMessage('');
-    try {
-      await API.put('/users/change-password', passForm);
-      setMessage('Password updated successfully!');
-      setPassForm({ currentPassword: '', newPassword: '' });
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      Alert.alert('Update failed', err?.response?.data?.message ?? 'Could not change password.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const handleDeleteAccount = async () => {
     setDeleteLoading(true);
@@ -323,7 +305,7 @@ export default function ProfileScreen() {
             <View style={styles.securityBox}>
               <Text style={styles.securityTitle}>Loading profile...</Text>
             </View>
-          ) : isGoogleUser ? (
+          ) : (
             <View style={styles.securityBox}>
               <View style={styles.googleHeader}>
                 {profile?.photoUrl ? (
@@ -336,7 +318,7 @@ export default function ProfileScreen() {
 
                 <View style={styles.googleTitleBlock}>
                   <View style={styles.nameRow}>
-                    <Text style={styles.googleName}>{profile?.name || 'Google user'}</Text>
+                    <Text style={styles.googleName}>{profile?.name || 'User'}</Text>
                     {profile?.emailVerified ? <Badge label="Verified" variant="success" /> : null}
                   </View>
                   <Text style={styles.googleSubtext}>Signed in with Google</Text>
@@ -361,22 +343,6 @@ export default function ProfileScreen() {
                   <Text style={styles.infoValue}>Google</Text>
                 </View>
               </View>
-            </View>
-          ) : (
-            <View style={styles.securityBox}>
-              <Text style={styles.securityTitle}>Security</Text>
-              <PasswordInput
-                label="Current Password"
-                value={passForm.currentPassword}
-                onChangeText={(v) => setPassForm({ ...passForm, currentPassword: v })}
-              />
-              <PasswordInput
-                label="New Password"
-                value={passForm.newPassword}
-                onChangeText={(v) => setPassForm({ ...passForm, newPassword: v })}
-              />
-              {message ? <Text style={styles.success}>{message}</Text> : null}
-              <Button title="Update Password" onPress={handleChangePassword} loading={loading} />
             </View>
           )}
         </CardBody>

@@ -33,6 +33,12 @@ const feedbackSchema = new mongoose.Schema({
         enum: ['unread', 'resolved', 'archived'],
         default: 'unread'
     },
+    resolutionMessage: {
+        type: String
+    },
+    resolvedAt: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now
