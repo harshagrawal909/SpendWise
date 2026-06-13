@@ -19,6 +19,9 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
+// Health Check
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', authMiddleware, expenseRoutes);
