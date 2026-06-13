@@ -22,17 +22,32 @@ type Profile = {
   emailVerified?: boolean;
   dateOfBirth?: string;
   createdAt?: string;
+  currency?: string;
 };
 
 function formatDate(value?: string) {
   if (!value) return 'Not added';
 
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(value));
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return 'Not added';
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(d);
+  } catch (e) {
+    try {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'Not added';
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    } catch {
+      return 'Not added';
+    }
+  }
 }
+
 
 export default function ProfileScreen() {
   const { email, role, signOut } = useAuth();
@@ -461,8 +476,8 @@ export default function ProfileScreen() {
       </Card>
 
       {/* Legal Modals */}
-      {renderLegalModal(termsVisible, setTermsVisible, 'Terms of Service', termsContent)}
-      {renderLegalModal(privacyVisible, setPrivacyVisible, 'Privacy Policy', privacyContent)}
+      {renderModal(termsVisible, setTermsVisible, 'Terms of Service', termsContent)}
+      {renderModal(privacyVisible, setPrivacyVisible, 'Privacy Policy', privacyContent)}
 
       {/* Feedback Modal */}
       <FeedbackModal

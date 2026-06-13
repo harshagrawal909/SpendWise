@@ -35,11 +35,11 @@ function RootLayoutNav() {
         await file.delete();
       }
 
-      const downloadTask = file.createDownloadTask(downloadUrl);
-      
-      downloadTask.onProgress((progress) => {
-        const percent = progress.totalBytesWritten / progress.totalBytesExpectedToWrite;
-        setDownloadProgress(Math.max(0, Math.min(1, percent)));
+      const downloadTask = File.createDownloadTask(downloadUrl, file, {
+        onProgress: (progress: { bytesWritten: number; totalBytes: number }) => {
+          const percent = progress.totalBytes > 0 ? progress.bytesWritten / progress.totalBytes : 0;
+          setDownloadProgress(Math.max(0, Math.min(1, percent)));
+        }
       });
 
       await downloadTask.downloadAsync();

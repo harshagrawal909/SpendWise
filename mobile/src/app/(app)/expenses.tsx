@@ -251,6 +251,7 @@ function EditModal({
   onClose,
   onSave,
   loading,
+  userCurrency,
 }: {
   open: boolean;
   initial: Transaction | null;
