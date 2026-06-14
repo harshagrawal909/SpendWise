@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import Feedback from '../models/Feedback.js';
 import User from '../models/User.js';
+import { sendEmail } from '../utils/mail.js';
 
 const router = express.Router();
 
@@ -50,50 +51,19 @@ router.post('/', async (req, res) => {
             console.log(`[Feedback System] Found ${admins.length} administrators in the database.`);
 
             // 1. Send Email Notification to Admins
-            if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-                try {
-                    const nodemailer = await import('nodemailer');
-                    
-                    const transportConfig = {
-                        auth: {
-                            user: process.env.EMAIL_USER,
-                            pass: process.env.EMAIL_PASS,
-                        }
-                    };
-
-                    if (process.env.EMAIL_HOST) {
-                        transportConfig.host = process.env.EMAIL_HOST;
-                        transportConfig.port = parseInt(process.env.EMAIL_PORT || '587');
-                        transportConfig.secure = process.env.EMAIL_SECURE === 'true';
-                        console.log(`[Feedback System] Using custom SMTP server config: ${transportConfig.host}:${transportConfig.port} (secure: ${transportConfig.secure})`);
-                    } else {
-                        transportConfig.service = process.env.EMAIL_SERVICE || 'gmail';
-                        console.log(`[Feedback System] Using standard email service config: ${transportConfig.service}`);
-                    }
-
-                    const transporter = (nodemailer.default || nodemailer).createTransport(transportConfig);
-
-                    const adminEmails = admins.map(a => a.email).filter(Boolean);
-                    if (adminEmails.length > 0) {
-                        const senderName = feedbackData.name || feedbackData.email || 'Anonymous';
-                        const mailOptions = {
-                            from: `"SpendWise System" <${process.env.EMAIL_USER}>`,
-                            to: adminEmails.join(','),
-                            subject: `New SpendWise Feedback: ${feedbackData.type.toUpperCase()}`,
-                            text: `Hello Admin,\n\nA new feedback message has been submitted on SpendWise.\n\nFrom: ${senderName} (${feedbackData.email || 'No Email'})\nPlatform: ${feedbackData.platform}\nType: ${feedbackData.type}\nMessage:\n"${message}"\n\nPlease resolve it in the admin portal.`,
-                            html: `<p>Hello Admin,</p><p>A new feedback message has been submitted on SpendWise.</p><p><strong>From:</strong> ${senderName} (${feedbackData.email || 'No Email'})<br/><strong>Platform:</strong> ${feedbackData.platform}<br/><strong>Type:</strong> ${feedbackData.type}</p><p><strong>Message:</strong><br/>"${message}"</p><p>Please resolve it in the admin portal.</p>`,
-                        };
-                        console.log(`[Feedback System] Dispatching notification email to admins: ${adminEmails.join(', ')}`);
-                        const info = await transporter.sendMail(mailOptions);
-                        console.log('[Feedback System] Email notification dispatched successfully. Info:', info.messageId || info);
-                    } else {
-                        console.log('[Feedback System] No admin email addresses found to send notifications.');
-                    }
-                } catch (emailErr) {
-                    console.error('[Feedback System] Nodemailer error for admin feedback notification:', emailErr.message);
-                }
+            const adminEmails = admins.map(a => a.email).filter(Boolean);
+            if (adminEmails.length > 0) {
+                const senderName = feedbackData.name || feedbackData.email || 'Anonymous';
+                sendEmail({
+                    to: adminEmails,
+                    subject: `New SpendWise Feedback: ${feedbackData.type.toUpperCase()}`,
+                    text: `Hello Admin,\n\nA new feedback message has been submitted on SpendWise.\n\nFrom: ${senderName} (${feedbackData.email || 'No Email'})\nPlatform: ${feedbackData.platform}\nType: ${feedbackData.type}\nMessage:\n"${message}"\n\nPlease resolve it in the admin portal.`,
+                    html: `<p>Hello Admin,</p><p>A new feedback message has been submitted on SpendWise.</p><p><strong>From:</strong> ${senderName} (${feedbackData.email || 'No Email'})<br/><strong>Platform:</strong> ${feedbackData.platform}<br/><strong>Type:</strong> ${feedbackData.type}</p><p><strong>Message:</strong><br/>"${message}"</p><p>Please resolve it in the admin portal.</p>`,
+                }).catch(err => {
+                    console.error('[Feedback System] sendEmail failed for admin notifications:', err.message);
+                });
             } else {
-                console.warn('[Feedback System] Email notifications SKIPPED: EMAIL_USER and/or EMAIL_PASS environment variables are not defined in .env');
+                console.log('[Feedback System] No admin email addresses found to send notifications.');
             }
 
             // 2. Send Push Notifications to Admins

@@ -7,6 +7,7 @@ import Expense from '../models/Expense.js';
 import Feedback from '../models/Feedback.js';
 import authMiddleware from '../middleware/auth.js';
 import adminMiddleware from '../middleware/adminMiddleware.js';
+import { sendEmail } from '../utils/mail.js';
 
 const router = express.Router();
 
@@ -250,49 +251,17 @@ router.patch('/feedback/:id/status', async (req, res) => {
                 console.log('[Feedback Resolution] No registered push tokens found for this user. Push notification skipped.');
             }
 
-            // 2. Send optional email using nodemailer
+            // 2. Send optional email using sendEmail utility
             const userEmail = feedback.email || feedback.userId?.email;
             if (userEmail) {
-                if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-                    try {
-                        const nodemailer = await import('nodemailer');
-                        
-                        const transportConfig = {
-                            auth: {
-                                user: process.env.EMAIL_USER,
-                                pass: process.env.EMAIL_PASS,
-                            }
-                        };
-
-                        if (process.env.EMAIL_HOST) {
-                            transportConfig.host = process.env.EMAIL_HOST;
-                            transportConfig.port = parseInt(process.env.EMAIL_PORT || '587');
-                            transportConfig.secure = process.env.EMAIL_SECURE === 'true';
-                            console.log(`[Feedback Resolution] Using custom SMTP server config: ${transportConfig.host}:${transportConfig.port} (secure: ${transportConfig.secure})`);
-                        } else {
-                            transportConfig.service = process.env.EMAIL_SERVICE || 'gmail';
-                            console.log(`[Feedback Resolution] Using standard email service config: ${transportConfig.service}`);
-                        }
-
-                        const transporter = (nodemailer.default || nodemailer).createTransport(transportConfig);
-
-                        const mailOptions = {
-                            from: `"SpendWise Admin" <${process.env.EMAIL_USER}>`,
-                            to: userEmail,
-                            subject: 'SpendWise Feedback Resolution',
-                            text: `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`,
-                            html: `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`,
-                        };
-
-                        console.log(`[Feedback Resolution] Dispatching resolution email to: ${userEmail}`);
-                        const info = await transporter.sendMail(mailOptions);
-                        console.log('[Feedback Resolution] Email sent successfully. Info:', info.messageId || info);
-                    } catch (emailErr) {
-                        console.error('[Feedback Resolution] Nodemailer error for feedback resolution:', emailErr.message);
-                    }
-                } else {
-                    console.warn('[Feedback Resolution] Email resolution skipped: EMAIL_USER and/or EMAIL_PASS environment variables are not defined in .env');
-                }
+                sendEmail({
+                    to: userEmail,
+                    subject: 'SpendWise Feedback Resolution',
+                    text: `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`,
+                    html: `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`,
+                }).catch(emailErr => {
+                    console.error('[Feedback Resolution] sendEmail failed for feedback resolution:', emailErr.message);
+                });
             } else {
                 console.log('[Feedback Resolution] No email address associated with this feedback or user. Email skipped.');
             }
