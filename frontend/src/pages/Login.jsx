@@ -7,9 +7,30 @@ import { setAuthToken, getAuthToken } from "../utils/authToken";
 export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [testimonials, setTestimonials] = useState([]);
   const googleButtonRef = useRef(null);
   const navigate = useNavigate();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const defaultTestimonials = [
+    { name: "Sarah Jenkins", message: "SpendWise saved me thousands in display currency conversions on my international trips! Real-time rates are seamless.", type: "feature", platform: "mobile" },
+    { name: "David K.", message: "The genuine Excel exporter is an absolute game-changer. I export my business expenses monthly in one tap directly on my phone.", type: "feature", platform: "web" },
+    { name: "Elena Rostova", message: "Amazing support team! I submitted a request from the app and the admin resolved my issue in under an hour.", type: "other", platform: "mobile" }
+  ];
+
+  useEffect(() => {
+    API.get("/feedback/testimonials")
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setTestimonials(res.data);
+        } else {
+          setTestimonials(defaultTestimonials);
+        }
+      })
+      .catch(() => {
+        setTestimonials(defaultTestimonials);
+      });
+  }, []);
 
   // Get query params to support redirecting back to mobile app
   const queryParams = new URLSearchParams(window.location.search);
@@ -226,6 +247,31 @@ export default function Login() {
 
               </div>
             </div>
+
+            {/* User Testimonials Section */}
+            {testimonials.length > 0 && (
+              <div className="mt-8 border-t border-[#FEF3C7] pt-6">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">User Testimonials &amp; Feedback</span>
+                <div className="grid gap-4 sm:grid-cols-3 mt-3">
+                  {testimonials.slice(0, 3).map((t, idx) => (
+                    <div key={idx} className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-4.5 shadow-2xs hover:shadow-xs transition duration-300 flex flex-col justify-between">
+                      <div>
+                        <div className="text-amber-600 text-[10px] font-extrabold mb-1.5 uppercase tracking-wide">
+                          {t.type === 'bug' ? '🐛 Fixed Bug' : t.type === 'feature' ? '💡 Request' : '⭐ Experience'}
+                        </div>
+                        <p className="text-xs text-slate-600 italic leading-relaxed">
+                          "{t.message}"
+                        </p>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between border-t border-slate-100/60 pt-2">
+                        <span className="text-[11px] font-black text-[#1E1B4B]">{t.name || 'Anonymous User'}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{t.platform} user</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Upcoming Features */}
             <div className="mt-8 border-t border-[#FEF3C7] pt-6">

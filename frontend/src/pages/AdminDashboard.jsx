@@ -124,6 +124,38 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteFeedback = async (id) => {
+    if (!window.confirm("Are you sure you want to permanently delete this feedback?")) return;
+    try {
+      await API.delete(`/admin/feedback/${id}`);
+      setFeedbacks((prev) => prev.filter((f) => f._id !== id));
+      toast.push({
+        tone: "success",
+        title: "Deleted",
+        message: "Feedback submission deleted successfully."
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete feedback");
+    }
+  };
+
+  const handleToggleTestimonial = async (id, currentStatus) => {
+    try {
+      const publish = !currentStatus;
+      await API.put(`/admin/feedback/${id}/testimonial`, { publish });
+      setFeedbacks((prev) =>
+        prev.map((f) => (f._id === id ? { ...f, publishedAsTestimonial: publish } : f))
+      );
+      toast.push({
+        tone: "success",
+        title: publish ? "Published" : "Unpublished",
+        message: publish ? "Feedback published to testimonials on landing page!" : "Feedback removed from testimonials."
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to toggle testimonial status");
+    }
+  };
+
   const handleDeleteNotification = async (id) => {
     if (!window.confirm("Are you sure you want to delete this notification record?")) return;
     try {
@@ -500,37 +532,61 @@ export default function AdminDashboard() {
                       {timeAgo(f.createdAt)}
                     </td>
                     <td className="px-6 py-3">
-                      {f.status === "unread" ? (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setResolvingId(f._id);
-                              setResolutionText("");
-                            }}
-                            className="inline-flex h-7 items-center justify-center rounded-lg bg-emerald-50 px-2 text-[10px] font-bold text-emerald-600 hover:bg-emerald-100 transition cursor-pointer"
-                            title="Mark Resolved"
+                      <div className="flex flex-wrap items-center gap-2">
+                        {f.status === "unread" ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                setResolvingId(f._id);
+                                setResolutionText("");
+                              }}
+                              className="inline-flex h-7 items-center justify-center rounded-lg bg-emerald-50 px-2 text-[10px] font-bold text-emerald-600 hover:bg-emerald-100 transition cursor-pointer"
+                              title="Mark Resolved"
+                            >
+                              ✓ Resolve
+                            </button>
+                            <button
+                              onClick={() => handleUpdateFeedbackStatus(f._id, "archived")}
+                              className="inline-flex h-7 items-center justify-center rounded-lg bg-slate-50 px-2 text-[10px] font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                              title="Archive"
+                            >
+                              Archive
+                            </button>
+                          </>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              f.status === "resolved"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-200 text-slate-600"
+                            }`}
                           >
-                            ✓ Resolve
-                          </button>
-                          <button
-                            onClick={() => handleUpdateFeedbackStatus(f._id, "archived")}
-                            className="inline-flex h-7 items-center justify-center rounded-lg bg-slate-50 px-2 text-[10px] font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-                            title="Archive"
-                          >
-                            Archive
-                          </button>
-                        </div>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                            f.status === "resolved"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-200 text-slate-600"
+                            {f.status}
+                          </span>
+                        )}
+
+                        {/* Testimonial Toggle Button */}
+                        <button
+                          onClick={() => handleToggleTestimonial(f._id, f.publishedAsTestimonial)}
+                          className={`inline-flex h-7 items-center justify-center rounded-lg px-2 text-[10px] font-bold transition cursor-pointer ${
+                            f.publishedAsTestimonial
+                              ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                           }`}
+                          title={f.publishedAsTestimonial ? "Remove from Testimonials" : "Publish to Testimonials"}
                         >
-                          {f.status}
-                        </span>
-                      )}
+                          {f.publishedAsTestimonial ? "🌟 Testimonial" : "⭐ Testimonial"}
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => handleDeleteFeedback(f._id)}
+                          className="inline-flex h-7 items-center justify-center rounded-lg bg-rose-50 px-2 text-[10px] font-bold text-rose-600 hover:bg-rose-100 transition cursor-pointer"
+                          title="Delete Feedback"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -369,19 +369,21 @@ export default function ProfileScreen() {
       </Card>
 
       {/* Help & Feedback */}
-      <Card style={{ marginTop: 16 }}>
-        <CardHeader>
-          <CardTitle>Help & Feedback</CardTitle>
-          <CardSubtitle>Send bug reports, suggestions, or feedback</CardSubtitle>
-        </CardHeader>
-        <CardBody style={{ gap: 12 }}>
-          <Button
-            title="Submit Feedback"
-            variant="outline"
-            onPress={() => setFeedbackVisible(true)}
-          />
-        </CardBody>
-      </Card>
+      {role !== 'admin' && (
+        <Card style={{ marginTop: 16 }}>
+          <CardHeader>
+            <CardTitle>Help & Feedback</CardTitle>
+            <CardSubtitle>Send bug reports, suggestions, or feedback</CardSubtitle>
+          </CardHeader>
+          <CardBody style={{ gap: 12 }}>
+            <Button
+              title="Submit Feedback"
+              variant="outline"
+              onPress={() => setFeedbackVisible(true)}
+            />
+          </CardBody>
+        </Card>
+      )}
 
       {/* Admin Portal Card */}
       {role === 'admin' && (

@@ -55,6 +55,7 @@ type FeedbackItem = {
   status: 'unread' | 'resolved' | 'archived';
   resolutionMessage?: string;
   resolvedAt?: string;
+  publishedAsTestimonial?: boolean;
   createdAt: string;
 };
 
@@ -148,6 +149,42 @@ export function AdminPortalModal({ visible, onClose }: Props) {
       setResolutionText('');
     } catch (err) {
       Alert.alert('Error', 'Failed to resolve feedback');
+    }
+  };
+
+  const handleDeleteFeedback = async (id: string) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to permanently delete this feedback submission?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await API.delete(`/admin/feedback/${id}`);
+              setFeedbacks(prev => prev.filter(f => f._id !== id));
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete feedback');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleToggleTestimonial = async (id: string, currentStatus: boolean | undefined) => {
+    try {
+      const publish = !currentStatus;
+      await API.put(`/admin/feedback/${id}/testimonial`, { publish });
+      setFeedbacks(prev => prev.map(f => f._id === id ? { ...f, publishedAsTestimonial: publish } : f));
+      Alert.alert(
+        publish ? 'Published' : 'Unpublished',
+        publish ? 'Feedback published as landing page testimonial.' : 'Feedback removed from testimonials.'
+      );
+    } catch (err) {
+      Alert.alert('Error', 'Failed to toggle testimonial status');
     }
   };
 
@@ -536,32 +573,76 @@ export function AdminPortalModal({ visible, onClose }: Props) {
                         </View>
 
                         <View style={styles.feedbackActionsRow}>
-                          {f.status === 'unread' ? (
-                            <View style={styles.actionButtonsContainer}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                              {f.status === 'unread' ? (
+                                <View style={{ flexDirection: 'row', gap: 8 }}>
+                                  <TouchableOpacity
+                                    style={[styles.actionBtn, styles.resolveBtn]}
+                                    onPress={() => {
+                                      setResolvingId(f._id);
+                                      setResolutionText('');
+                                    }}
+                                  >
+                                    <Text style={styles.resolveBtnText}>✓ Resolve</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    style={[styles.actionBtn, styles.archiveBtn]}
+                                    onPress={() => handleUpdateFeedbackStatus(f._id, 'archived')}
+                                  >
+                                    <Text style={styles.archiveBtnText}>Archive</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              ) : (
+                                <Text style={[
+                                  styles.statusLabel,
+                                  f.status === 'resolved' ? styles.statusResolved : styles.statusArchived
+                                ]}>
+                                  {f.status.toUpperCase()}
+                                </Text>
+                              )}
+                            </View>
+
+                            <View style={{ flexDirection: 'row', gap: 6 }}>
+                              {/* Testimonial Button */}
                               <TouchableOpacity
-                                style={[styles.actionBtn, styles.resolveBtn]}
-                                onPress={() => {
-                                  setResolvingId(f._id);
-                                  setResolutionText('');
-                                }}
+                                style={[
+                                  styles.actionBtn,
+                                  {
+                                    backgroundColor: f.publishedAsTestimonial ? '#FEF3C7' : '#F1F5F9',
+                                    borderColor: f.publishedAsTestimonial ? '#F59E0B' : '#E2E8F0',
+                                    borderWidth: 1,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 5,
+                                    borderRadius: 8
+                                  }
+                                ]}
+                                onPress={() => handleToggleTestimonial(f._id, f.publishedAsTestimonial)}
                               >
-                                <Text style={styles.resolveBtnText}>✓ Resolve</Text>
+                                <Text style={{ fontSize: 9, fontWeight: '700', color: f.publishedAsTestimonial ? '#B45309' : '#475569' }}>
+                                  {f.publishedAsTestimonial ? '🌟 Testimonial' : '⭐ Testimonial'}
+                                </Text>
                               </TouchableOpacity>
+
+                              {/* Delete Button */}
                               <TouchableOpacity
-                                style={[styles.actionBtn, styles.archiveBtn]}
-                                onPress={() => handleUpdateFeedbackStatus(f._id, 'archived')}
+                                style={[
+                                  styles.actionBtn,
+                                  {
+                                    backgroundColor: '#FEE2E2',
+                                    borderColor: '#FCA5A5',
+                                    borderWidth: 1,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 5,
+                                    borderRadius: 8
+                                  }
+                                ]}
+                                onPress={() => handleDeleteFeedback(f._id)}
                               >
-                                <Text style={styles.archiveBtnText}>Archive</Text>
+                                <Text style={{ fontSize: 9, fontWeight: '700', color: '#EF4444' }}>🗑️ Delete</Text>
                               </TouchableOpacity>
                             </View>
-                          ) : (
-                            <Text style={[
-                              styles.statusLabel,
-                              f.status === 'resolved' ? styles.statusResolved : styles.statusArchived
-                            ]}>
-                              {f.status.toUpperCase()}
-                            </Text>
-                          )}
+                          </View>
                         </View>
                       </View>
                     ))

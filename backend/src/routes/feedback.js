@@ -104,6 +104,7 @@ router.post('/', async (req, res) => {
                     sound: 'default',
                     title: '📩 New Feedback Submitted',
                     body: bodyText,
+                    channelId: 'default',
                     data: { type: 'feedback', feedbackId: feedback._id }
                 }));
 
@@ -131,6 +132,19 @@ router.post('/', async (req, res) => {
             message: "Feedback submitted successfully",
             feedback
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/feedback/testimonials — Get all public testimonials
+router.get('/testimonials', async (req, res) => {
+    try {
+        const testimonials = await Feedback.find({ publishedAsTestimonial: true })
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .select('name message type platform createdAt');
+        res.json(testimonials);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

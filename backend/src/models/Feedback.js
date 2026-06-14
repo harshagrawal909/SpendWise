@@ -39,6 +39,10 @@ const feedbackSchema = new mongoose.Schema({
     resolvedAt: {
         type: Date
     },
+    publishedAsTestimonial: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now

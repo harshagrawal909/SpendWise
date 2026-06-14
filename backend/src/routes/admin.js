@@ -99,6 +99,7 @@ router.post('/notifications', async (req, res) => {
                     sound: 'default',
                     title,
                     body,
+                    channelId: 'default',
                     data: { type: 'broadcast' }
                 }));
 
@@ -217,13 +218,33 @@ router.patch('/feedback/:id/status', async (req, res) => {
 
         if (status === 'resolved') {
             const replyMsg = resolutionMessage || 'Thank you! Your feedback has been resolved.';
+            const isBug = feedback.type === 'bug';
+
+            // Custom notification wording
+            const notifTitle = isBug ? '📢 Bug Resolved! Update Now' : '📢 Feedback Resolved';
+            const notifBody = isBug 
+                ? `The bug you reported has been resolved! Please update your app to see the fix. Details: "${replyMsg.slice(0, 50)}${replyMsg.length > 50 ? '...' : ''}"`
+                : `Admin resolved: "${replyMsg.slice(0, 60)}${replyMsg.length > 60 ? '...' : ''}"`;
+
+            const pushTitle = isBug ? '📢 Bug Resolved! Update Now' : '📢 Feedback Response';
+            const pushBody = isBug 
+                ? `The bug you reported is resolved! Please update your app to see the fix. Details: "${replyMsg}"`
+                : `Admin replied: "${replyMsg}"`;
+
+            const emailSubject = isBug ? 'SpendWise Bug Resolved - Update Available' : 'SpendWise Feedback Resolution';
+            const emailText = isBug
+                ? `Hello,\n\nThe bug you reported has been resolved by an administrator. Please update your app now to see the fix.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`
+                : `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`;
+            const emailHtml = isBug
+                ? `<p>Hello,</p><p>The bug you reported has been resolved by an administrator. <strong>Please update your app now to see the fix.</strong></p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`
+                : `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`;
 
             // Create database notification for the user
             if (feedback.userId) {
                 try {
                     await Notification.create({
-                        title: '📢 Feedback Resolved',
-                        body: `Admin resolved: "${replyMsg.slice(0, 60)}${replyMsg.length > 60 ? '...' : ''}"`,
+                        title: notifTitle,
+                        body: notifBody,
                         sentBy: req.user.id,
                         targetUserId: feedback.userId._id,
                         recipientCount: 1
@@ -240,8 +261,9 @@ router.patch('/feedback/:id/status', async (req, res) => {
                 const messages = feedback.userId.pushTokens.map(pushToken => ({
                     to: pushToken,
                     sound: 'default',
-                    title: '📢 Feedback Response',
-                    body: `Admin replied: "${replyMsg}"`,
+                    title: pushTitle,
+                    body: pushBody,
+                    channelId: 'default',
                     data: { type: 'feedback_resolved', feedbackId: feedback._id }
                 }));
 
@@ -271,9 +293,9 @@ router.patch('/feedback/:id/status', async (req, res) => {
             if (userEmail) {
                 sendEmail({
                     to: userEmail,
-                    subject: 'SpendWise Feedback Resolution',
-                    text: `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`,
-                    html: `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`,
+                    subject: emailSubject,
+                    text: emailText,
+                    html: emailHtml,
                 }).catch(emailErr => {
                     console.error('[Feedback Resolution] sendEmail failed for feedback resolution:', emailErr.message);
                 });
@@ -281,7 +303,37 @@ router.patch('/feedback/:id/status', async (req, res) => {
                 console.log('[Feedback Resolution] No email address associated with this feedback or user. Email skipped.');
             }
         }
+        res.json(feedback);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
+// DELETE /api/admin/feedback/:id — Delete feedback submission
+router.delete('/feedback/:id', async (req, res) => {
+    try {
+        const feedback = await Feedback.findByIdAndDelete(req.params.id);
+        if (!feedback) {
+            return res.status(404).json({ message: "Feedback not found" });
+        }
+        res.json({ message: "Feedback deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/admin/feedback/:id/testimonial — Toggle testimonial status of feedback
+router.put('/feedback/:id/testimonial', async (req, res) => {
+    try {
+        const { publish } = req.body;
+        const feedback = await Feedback.findByIdAndUpdate(
+            req.params.id,
+            { publishedAsTestimonial: !!publish },
+            { new: true }
+        );
+        if (!feedback) {
+            return res.status(404).json({ message: "Feedback not found" });
+        }
         res.json(feedback);
     } catch (err) {
         res.status(500).json({ error: err.message });

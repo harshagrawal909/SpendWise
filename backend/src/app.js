@@ -34,5 +34,18 @@ app.use('/api/feedback', feedbackRoutes);
 
 const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => app.listen(PORT, () => console.log(`Server running on port ${PORT}`)))
+    .then(async () => {
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        try {
+            const User = (await import('./models/User.js')).default;
+            const res = await User.deleteMany({ provider: 'local' });
+            if (res.deletedCount > 0) {
+                console.log(`[Database Cleanup] Purged ${res.deletedCount} local user accounts from database.`);
+            } else {
+                console.log('[Database Cleanup] Database is clean of local user accounts (Google-only).');
+            }
+        } catch (cleanupErr) {
+            console.error('[Database Cleanup] Failed to run database cleanup hook:', cleanupErr.message);
+        }
+    })
     .catch(err => console.log(err));

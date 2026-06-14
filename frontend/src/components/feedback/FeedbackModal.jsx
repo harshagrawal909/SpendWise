@@ -21,6 +21,10 @@ export default function FeedbackModal() {
     }
   }, [isOpen]);
 
+  if (user?.role === "admin") {
+    return null;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) {
