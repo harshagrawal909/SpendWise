@@ -95,18 +95,17 @@ export default function Login() {
   }, [googleClientId, handleGoogleCredential]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between relative overflow-hidden">
-      {/* Background gradients */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-50/50 via-slate-50 to-slate-50" />
-      <div className="absolute top-1/4 -left-32 -z-10 h-96 w-96 rounded-full bg-indigo-200/30 blur-3xl animate-pulse duration-[8000ms]" />
-      <div className="absolute bottom-1/4 -right-32 -z-10 h-96 w-96 rounded-full bg-rose-200/20 blur-3xl animate-pulse duration-[6000ms]" />
+    <div className="min-h-screen bg-[#FFFBEB] text-[#1E293B] flex flex-col justify-between relative overflow-hidden font-sans">
+      {/* Subtle organic background lights */}
+      <div className="absolute top-1/4 -left-32 -z-10 h-96 w-96 rounded-full bg-indigo-300/10 blur-3xl" />
+      <div className="absolute bottom-1/4 -right-32 -z-10 h-96 w-96 rounded-full bg-amber-400/10 blur-3xl" />
 
       {/* Top Navbar */}
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-[#FEF3C7] bg-[#FFFBEB]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="SpendWise Logo" className="h-8 w-8 object-contain" />
-            <span className="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-600 bg-clip-text text-transparent">SpendWise</span>
+            <img src="/logo.png" alt="SpendWise Logo" className="h-9 w-9 object-contain" />
+            <span className="text-2xl font-black tracking-tight text-[#1E1B4B]">SpendWise</span>
           </div>
           <div>
             <a
@@ -121,16 +120,16 @@ export default function Login() {
 
       {/* Hero Section */}
       <main className="flex-1 flex items-center">
-        <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:py-20 grid gap-12 lg:grid-cols-12 items-center">
+        <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:py-16 grid gap-12 lg:grid-cols-12 items-center">
           
           {/* Right Column: Authentication Card - FIRST on mobile, LAST on desktop */}
           <div className="lg:col-span-5 flex justify-center order-1 lg:order-2">
-            <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-200/50 relative">
-              <div className="absolute -top-3 -right-3 px-3 py-1 bg-gradient-to-r from-rose-500 to-indigo-600 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white shadow-sm">
+            <div className="w-full max-w-md bg-[#FFFDF4] border border-[#FEF3C7] rounded-3xl p-8 shadow-xl shadow-slate-300/20 relative">
+              <div className="absolute -top-3 -right-3 px-3 py-1 bg-[#1E1B4B] rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white shadow-sm">
                 Google Auth Only
               </div>
-              <h2 className="text-2xl font-black text-slate-900">Welcome</h2>
-              <p className="text-slate-500 text-xs mt-1 mb-6">Experience SpendWise. Authenticate using your secure Google account.</p>
+              <h2 className="text-2xl font-black text-[#1E1B4B]">Welcome Back</h2>
+              <p className="text-slate-500 text-xs mt-1 mb-6">Experience the full power of SpendWise. Authenticate using Google single-sign-on.</p>
 
               {error && (
                 <div className="mb-4 rounded-xl border border-rose-100 bg-rose-50 p-3.5 text-xs font-semibold text-rose-600">
@@ -141,10 +140,10 @@ export default function Login() {
               {googleClientId ? (
                 <div
                   ref={googleButtonRef}
-                  className={googleLoading ? "pointer-events-none opacity-70 w-full flex justify-center py-2 bg-slate-50 rounded-2xl border border-slate-200" : "w-full flex justify-center py-2 bg-slate-50 rounded-2xl border border-slate-200 hover:border-slate-300 transition"}
+                  className={googleLoading ? "pointer-events-none opacity-70 w-full flex justify-center py-2 bg-white rounded-2xl border border-slate-200" : "w-full flex justify-center py-2 bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition"}
                 />
               ) : (
-                <div className="rounded-xl border border-amber-100 bg-amber-50 p-3.5 text-xs text-amber-800 leading-normal">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800 leading-normal">
                   Configure VITE_GOOGLE_CLIENT_ID environment variable to enable Google authentication.
                 </div>
               )}
@@ -155,63 +154,86 @@ export default function Login() {
           <div className="lg:col-span-7 space-y-8 order-2 lg:order-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3.5 py-1.5 text-xs font-bold text-indigo-700">
               <span className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
-              Version 1.6.0 Available
+              Version 1.6.0 Upgrade Complete
             </div>
             
-            <h1 className="text-4xl sm:text-5xl font-black leading-tight text-slate-900 tracking-tight">
-              Master your capital with <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-600 bg-clip-text text-transparent">Limitless Power</span>.
+            <h1 className="text-4xl sm:text-5xl font-black leading-tight text-[#1E1B4B] tracking-tight">
+              Track expenses, see insights, and stay in control.
             </h1>
             
             <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
-              Track global currencies, analyze transaction distributions with hot-red analytics, export to native spreadsheets, and get direct resolution alerts from administrators.
+              SpendWise is a premium expense &amp; income ledger built to manage global capital seamlessly. Write transactions in any currency, visualize trends, and export spreadsheets.
             </p>
 
-            {/* Showcase Grid */}
-            <div className="grid gap-4 sm:grid-cols-2 mt-8">
-              {/* Feature 1: Multi-Currency */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-5 shadow-sm hover:border-indigo-500/30 hover:shadow-md transition duration-300">
-                <div className="text-2xl mb-2">🌍</div>
-                <h3 className="font-extrabold text-slate-900 text-sm">160+ Currencies Supported</h3>
-                <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                  Track in JPY, USD, EUR, or INR and auto-convert to your home denomination with real-time API rates.
-                </p>
-              </div>
+            {/* Feature list */}
+            <div>
+              <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">Core Ecosystem Features</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                
+                {/* Feature 1: Multi-Currency */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-5 shadow-xs hover:shadow-md transition duration-300">
+                  <div className="text-2xl mb-2">🌍</div>
+                  <h3 className="font-extrabold text-[#1E1B4B] text-sm">160+ World Currencies</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                    Track transactions in JPY, USD, EUR, or INR. Auto-converts to your display currency using cached real-time API exchange rates.
+                  </p>
+                </div>
 
-              {/* Feature 2: Reddish Analytics */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-5 shadow-sm hover:border-rose-500/30 hover:shadow-md transition duration-300">
-                <div className="text-2xl mb-2">📈</div>
-                <h3 className="font-extrabold text-slate-900 text-sm">Vibrant Reddish Analytics</h3>
-                <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                  Stunning visual charts highlight your key income vs. expense categories, showing where your cash flows.
-                </p>
-              </div>
+                {/* Feature 2: Reddish Analytics */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-5 shadow-xs hover:shadow-md transition duration-300">
+                  <div className="text-2xl mb-2">📈</div>
+                  <h3 className="font-extrabold text-[#1E1B4B] text-sm">Sleek Reddish Analytics</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                    Vibrant chart summaries map out category weights, balances, and monthly cash flow distributions.
+                  </p>
+                </div>
 
-              {/* Feature 3: Excel SheetJS */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-5 shadow-sm hover:border-emerald-500/30 hover:shadow-md transition duration-300">
-                <div className="text-2xl mb-2">📊</div>
-                <h3 className="font-extrabold text-slate-900 text-sm">Genuine Excel Exports</h3>
-                <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                  Skip plain CSV format. Download formatted `.xlsx` workbooks directly to analyze, filter, or share.
-                </p>
-              </div>
+                {/* Feature 3: Excel SheetJS */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-5 shadow-xs hover:shadow-md transition duration-300">
+                  <div className="text-2xl mb-2">📊</div>
+                  <h3 className="font-extrabold text-[#1E1B4B] text-sm">Genuine Excel Exports</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                    Export your date-filtered transaction ledger as a fully-formatted Excel workbook (`.xlsx`) using custom column scaling.
+                  </p>
+                </div>
 
-              {/* Feature 4: Admin Mentions */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-5 shadow-sm hover:border-amber-500/30 hover:shadow-md transition duration-300">
-                <div className="text-2xl mb-2">💬</div>
-                <h3 className="font-extrabold text-slate-900 text-sm">Admin Resolution Alerts</h3>
-                <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                  Ask questions or report bugs directly. Receive instant push notifications and emails when admins reply.
-                </p>
+                {/* Feature 4: Direct Mobile Downloads */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-5 shadow-xs hover:shadow-md transition duration-300">
+                  <div className="text-2xl mb-2">📥</div>
+                  <h3 className="font-extrabold text-[#1E1B4B] text-sm">Direct Device Downloads</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                    Android client downloads files directly to your chosen folder (e.g. `Downloads`) via SAF, skipping sharing chooser panels.
+                  </p>
+                </div>
+
+                {/* Feature 5: Feedback loops */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-5 shadow-xs hover:shadow-md transition duration-300">
+                  <div className="text-2xl mb-2">💬</div>
+                  <h3 className="font-extrabold text-[#1E1B4B] text-sm">Admin Chat Resolutions</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                    Submit bugs or feature ideas from profile settings. Admins reply inline, alerting you via email notifications and push messages.
+                  </p>
+                </div>
+
+                {/* Feature 6: Offline & Sync */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-5 shadow-xs hover:shadow-md transition duration-300">
+                  <div className="text-2xl mb-2">⚡</div>
+                  <h3 className="font-extrabold text-[#1E1B4B] text-sm">Offline-First &amp; Cloud Sync</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                    Logs expenses offline instantly and auto-synchronizes securely with your primary cloud account when back online.
+                  </p>
+                </div>
+
               </div>
             </div>
 
             {/* Upcoming Features */}
-            <div className="mt-6 border-t border-slate-200 pt-6">
+            <div className="mt-6 border-t border-[#FEF3C7] pt-6">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Coming Soon</span>
               <div className="flex flex-wrap gap-3 mt-2">
-                <span className="px-3 py-1 rounded-full bg-slate-100 text-[11px] font-semibold text-indigo-700 border border-indigo-200/50">🤖 AI Budgeting Bot</span>
-                <span className="px-3 py-1 rounded-full bg-slate-100 text-[11px] font-semibold text-rose-700 border border-rose-200/50">📸 Smart Receipt Scanner</span>
-                <span className="px-3 py-1 rounded-full bg-slate-100 text-[11px] font-semibold text-emerald-700 border border-emerald-200/50">🏦 Direct Bank Sync</span>
+                <span className="px-3 py-1.5 rounded-full bg-[#FFFDF4] text-[11px] font-bold text-[#1E1B4B] border border-[#FEF3C7]">💳 Multiple Transaction Accounts (Personal/Business)</span>
+                <span className="px-3 py-1.5 rounded-full bg-[#FFFDF4] text-[11px] font-bold text-[#1E1B4B] border border-[#FEF3C7]">🤖 AI-Powered Budgeting Helper</span>
+                <span className="px-3 py-1.5 rounded-full bg-[#FFFDF4] text-[11px] font-bold text-[#1E1B4B] border border-[#FEF3C7]">📸 Smart Receipt Scanner &amp; OCR</span>
               </div>
             </div>
           </div>
@@ -220,8 +242,8 @@ export default function Login() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-slate-100">
-        <p>© {new Date().getFullYear()} SpendWise. Designed for financial excellence.</p>
+      <footer className="border-t border-[#FEF3C7] py-6 text-center text-xs text-slate-500 bg-[#FDF8E2]">
+        <p>© {new Date().getFullYear()} SpendWise. Track smarter, spend wiser.</p>
       </footer>
     </div>
   );
