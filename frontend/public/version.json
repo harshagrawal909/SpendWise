@@ -1,6 +1,6 @@
 {
-  "versionCode": 6,
-  "versionName": "1.5.0",
+  "versionCode": 7,
+  "versionName": "1.6.0",
   "apkUrl": "/api/download/apk",
-  "releaseNotes": "Updates to Google-only login, reddish analytics, CSV export, and admin notification/feedback tools."
+  "releaseNotes": "Upgrade export to Excel (.xlsx), direct Downloads support on mobile, premium redesigned landing pages, and 160+ currencies support."
 }

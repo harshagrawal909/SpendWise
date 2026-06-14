@@ -95,93 +95,134 @@ export default function Login() {
   }, [googleClientId, handleGoogleCredential]);
 
   return (
-    <div className="min-h-screen">
-      <div className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-linear-to-br from-indigo-50 via-slate-50 to-emerald-50" />
-        <div className="absolute -left-24 -top-24 -z-10 h-72 w-72 rounded-full bg-indigo-200/40 blur-3xl" />
-        <div className="absolute -right-28 top-20 -z-10 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden">
+      {/* Background gradients */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950" />
+      <div className="absolute top-1/4 -left-32 -z-10 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl animate-pulse duration-[8000ms]" />
+      <div className="absolute bottom-1/4 -right-32 -z-10 h-96 w-96 rounded-full bg-rose-500/10 blur-3xl animate-pulse duration-[6000ms]" />
 
-        <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-10">
-          <div className="grid w-full items-center gap-10 md:grid-cols-2">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                SpendWise
-              </div>
-              <h1 className="mt-4 text-3xl font-extrabold leading-tight text-slate-900 md:text-4xl">
-                Track expenses, see insights, and stay in control.
-              </h1>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600 md:text-base">
-                A clean dashboard for income/expense balance, category
-                distribution, and monthly trends.
-              </p>
+      {/* Top Navbar */}
+      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚡</span>
+            <span className="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-rose-400 bg-clip-text text-transparent">SpendWise</span>
+          </div>
+          <div>
+            <a
+              href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}/api/download/apk`}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold transition flex items-center gap-2 border border-slate-800"
+            >
+              <span>📥</span> Download APK
+            </a>
+          </div>
+        </div>
+      </header>
 
-              {/* Mobile App Download Card */}
-              <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-5 shadow-lg">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-white shadow">
-                  <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
-                    <path d="M3 18.5v-13A1.5 1.5 0 0 1 5.2 4.1l11 6.5a1.5 1.5 0 0 1 0 2.6l-11 6.5A1.5 1.5 0 0 1 3 18.5z"/>
-                  </svg>
-                </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <h3 className="font-extrabold text-white text-sm">SpendWise for Android</h3>
-                  <p className="mt-0.5 text-xs text-slate-400">Offline-first · Auto-sync · Works anywhere</p>
-                </div>
-                <a
-                  href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}/api/download/apk`}
-                  className="inline-flex items-center gap-2.5 rounded-2xl bg-white px-4 py-2.5 text-slate-900 shadow-md transition hover:bg-slate-100 active:scale-95 whitespace-nowrap"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-slate-900 flex-shrink-0">
-                    <path d="M3 18.5v-13A1.5 1.5 0 0 1 5.2 4.1l11 6.5a1.5 1.5 0 0 1 0 2.6l-11 6.5A1.5 1.5 0 0 1 3 18.5z"/>
-                  </svg>
-                  <div className="text-left leading-none">
-                    <div className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">Download for</div>
-                    <div className="text-xs font-bold">Android</div>
-                  </div>
-                </a>
+      {/* Hero Section */}
+      <main className="flex-1 flex items-center">
+        <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:py-20 grid gap-12 lg:grid-cols-12 items-center">
+          
+          {/* Left Column: Premium Showcases */}
+          <div className="lg:col-span-7 space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3.5 py-1.5 text-xs font-semibold text-indigo-300">
+              <span className="h-2 w-2 rounded-full bg-indigo-400 animate-ping" />
+              Empowered Version 1.6.0 Available
+            </div>
+            
+            <h1 className="text-4xl sm:text-5xl font-black leading-tight text-white tracking-tight">
+              Master your capital with <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-rose-400 bg-clip-text text-transparent">Limitless Power</span>.
+            </h1>
+            
+            <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl">
+              Track global currencies, analyze transaction distributions with hot-red analytics, export to native spreadsheets, and get direct resolution alerts from administrators.
+            </p>
+
+            {/* Showcase Grid */}
+            <div className="grid gap-4 sm:grid-cols-2 mt-8">
+              {/* Feature 1: Multi-Currency */}
+              <div className="rounded-2xl border border-slate-900 bg-slate-900/40 p-5 backdrop-blur-sm hover:border-indigo-500/30 transition duration-300">
+                <div className="text-2xl mb-2">🌍</div>
+                <h3 className="font-extrabold text-white text-sm">160+ Currencies Supported</h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Track in JPY, USD, EUR, or INR and auto-convert to your home denomination with real-time API rates.
+                </p>
               </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 text-sm text-slate-700">
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm">
-                  <div className="font-bold text-slate-900">Faster entry</div>
-                  <div className="mt-1 text-slate-600">
-                    Add expenses in seconds.
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm">
-                  <div className="font-bold text-slate-900">Better clarity</div>
-                  <div className="mt-1 text-slate-600">
-                    Trends and distribution.
-                  </div>
-                </div>
+
+              {/* Feature 2: Reddish Analytics */}
+              <div className="rounded-2xl border border-slate-900 bg-slate-900/40 p-5 backdrop-blur-sm hover:border-rose-500/30 transition duration-300">
+                <div className="text-2xl mb-2">📈</div>
+                <h3 className="font-extrabold text-white text-sm">Vibrant Reddish Analytics</h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Stunning visual charts highlight your key income vs. expense categories, showing where your cash flows.
+                </p>
+              </div>
+
+              {/* Feature 3: Excel SheetJS */}
+              <div className="rounded-2xl border border-slate-900 bg-slate-900/40 p-5 backdrop-blur-sm hover:border-emerald-500/30 transition duration-300">
+                <div className="text-2xl mb-2">📊</div>
+                <h3 className="font-extrabold text-white text-sm">Genuine Excel Exports</h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Skip plain CSV format. Download formatted `.xlsx` workbooks directly to analyze, filter, or share.
+                </p>
+              </div>
+
+              {/* Feature 4: Admin Mentions */}
+              <div className="rounded-2xl border border-slate-900 bg-slate-900/40 p-5 backdrop-blur-sm hover:border-amber-500/30 transition duration-300">
+                <div className="text-2xl mb-2">💬</div>
+                <h3 className="font-extrabold text-white text-sm">Admin Resolution Alerts</h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Ask questions or report bugs directly. Receive instant push notifications and emails when admins reply.
+                </p>
               </div>
             </div>
 
-            <Card className="mx-auto w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Welcome back</CardTitle>
-                <CardSubtitle>Sign in to continue to your dashboard.</CardSubtitle>
-              </CardHeader>
-              <CardBody className="space-y-4">
-                {error ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {error}
-                  </div>
-                ) : null}
-
-                {googleClientId ? (
-                  <div
-                    ref={googleButtonRef}
-                    className={googleLoading ? "pointer-events-none opacity-70 w-full flex justify-center" : "w-full flex justify-center"}
-                  />
-                ) : (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                    Add VITE_GOOGLE_CLIENT_ID to enable Google sign-in.
-                  </div>
-                )}
-              </CardBody>
-            </Card>
+            {/* Upcoming Features */}
+            <div className="mt-6 border-t border-slate-900 pt-6">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Coming Soon</span>
+              <div className="flex flex-wrap gap-3 mt-2">
+                <span className="px-3 py-1 rounded-full bg-slate-900 text-[11px] font-semibold text-indigo-400 border border-indigo-900/30">🤖 AI Budgeting Bot</span>
+                <span className="px-3 py-1 rounded-full bg-slate-900 text-[11px] font-semibold text-rose-400 border border-rose-900/30">📸 Smart Receipt Scanner</span>
+                <span className="px-3 py-1 rounded-full bg-slate-900 text-[11px] font-semibold text-emerald-400 border border-emerald-900/30">🏦 Direct Bank Sync</span>
+              </div>
+            </div>
           </div>
+
+          {/* Right Column: Authentication Card */}
+          <div className="lg:col-span-5 flex justify-center">
+            <div className="w-full max-w-md bg-slate-900/70 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md relative">
+              <div className="absolute -top-3 -right-3 px-3 py-1 bg-gradient-to-r from-rose-500 to-indigo-600 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white">
+                Google Auth Only
+              </div>
+              <h2 className="text-2xl font-black text-white">Welcome</h2>
+              <p className="text-slate-400 text-xs mt-1 mb-6">Experience SpendWise. Authenticate using your secure Google account.</p>
+
+              {error && (
+                <div className="mb-4 rounded-xl border border-rose-950 bg-rose-950/30 p-3.5 text-xs font-semibold text-rose-400">
+                  {error}
+                </div>
+              )}
+
+              {googleClientId ? (
+                <div
+                  ref={googleButtonRef}
+                  className={googleLoading ? "pointer-events-none opacity-70 w-full flex justify-center py-2 bg-slate-950 rounded-2xl border border-slate-800" : "w-full flex justify-center py-2 bg-slate-950 rounded-2xl border border-slate-800 hover:border-slate-700 transition"}
+                />
+              ) : (
+                <div className="rounded-xl border border-amber-950 bg-amber-950/20 p-3.5 text-xs text-amber-400 leading-normal">
+                  Configure VITE_GOOGLE_CLIENT_ID environment variable to enable Google authentication.
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-600 bg-slate-950">
+        <p>© {new Date().getFullYear()} SpendWise. Designed for financial excellence.</p>
+      </footer>
     </div>
   );
 }

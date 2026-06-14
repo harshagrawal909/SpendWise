@@ -47,7 +47,7 @@ function AppTabs() {
           }}
         />
         <Tabs.Screen
-          name="csv"
+          name="excel"
           options={{
             title: 'Export',
             tabBarIcon: ({ color, size }) => <Ionicons name="download-outline" size={size} color={color} />,

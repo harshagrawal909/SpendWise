@@ -45,18 +45,47 @@ router.post('/', async (req, res) => {
 
         const feedback = await Feedback.create(feedbackData);
 
-        // Find all admin users with push tokens and notify them
+        // Notify all admin users
         try {
-            const admins = await User.find({
-                role: 'admin',
-                pushTokens: { $exists: true, $not: { $size: 0 } }
-            }).select('pushTokens');
+            const admins = await User.find({ role: 'admin' });
 
+            // 1. Send Email Notification to Admins
+            if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                try {
+                    const nodemailer = await import('nodemailer');
+                    const transporter = (nodemailer.default || nodemailer).createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS,
+                        },
+                    });
+
+                    const adminEmails = admins.map(a => a.email).filter(Boolean);
+                    if (adminEmails.length > 0) {
+                        const senderName = feedbackData.name || feedbackData.email || 'Anonymous';
+                        const mailOptions = {
+                            from: `"SpendWise System" <${process.env.EMAIL_USER}>`,
+                            to: adminEmails.join(','),
+                            subject: `New SpendWise Feedback: ${feedbackData.type.toUpperCase()}`,
+                            text: `Hello Admin,\n\nA new feedback message has been submitted on SpendWise.\n\nFrom: ${senderName} (${feedbackData.email || 'No Email'})\nPlatform: ${feedbackData.platform}\nType: ${feedbackData.type}\nMessage:\n"${message}"\n\nPlease resolve it in the admin portal.`,
+                            html: `<p>Hello Admin,</p><p>A new feedback message has been submitted on SpendWise.</p><p><strong>From:</strong> ${senderName} (${feedbackData.email || 'No Email'})<br/><strong>Platform:</strong> ${feedbackData.platform}<br/><strong>Type:</strong> ${feedbackData.type}</p><p><strong>Message:</strong><br/>"${message}"</p><p>Please resolve it in the admin portal.</p>`,
+                        };
+                        await transporter.sendMail(mailOptions);
+                    }
+                } catch (emailErr) {
+                    console.error('Nodemailer error for admin feedback notification:', emailErr.message);
+                }
+            }
+
+            // 2. Send Push Notifications to Admins
             const allTokens = [];
             for (const admin of admins) {
-                for (const token of admin.pushTokens) {
-                    if (token && !allTokens.includes(token)) {
-                        allTokens.push(token);
+                if (Array.isArray(admin.pushTokens)) {
+                    for (const token of admin.pushTokens) {
+                        if (token && !allTokens.includes(token)) {
+                            allTokens.push(token);
+                        }
                     }
                 }
             }
@@ -72,7 +101,6 @@ router.post('/', async (req, res) => {
                     data: { type: 'feedback', feedbackId: feedback._id }
                 }));
 
-                // Call Expo Push API
                 await fetch('https://exp.host/--/api/v2/push/send', {
                     method: 'POST',
                     headers: {
