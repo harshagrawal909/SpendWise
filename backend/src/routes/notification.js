@@ -5,13 +5,31 @@ import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET /api/notifications — Get all broadcast notifications for user feed
+// GET /api/notifications — Get all relevant notifications for user feed
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const notifications = await Notification.find()
+        const query = {
+            $or: [
+                { targetUserId: req.user.id },
+                {
+                    $and: [
+                        { targetUserId: { $exists: false } },
+                        {
+                            $or: [
+                                { targetRole: 'all' },
+                                { targetRole: { $exists: false } },
+                                { targetRole: req.user.role || 'user' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        const notifications = await Notification.find(query)
             .sort({ createdAt: -1 })
             .limit(30)
-            .select('title body sentAt createdAt');
+            .select('title body sentAt createdAt targetRole targetUserId');
         res.json(notifications);
     } catch (err) {
         res.status(500).json({ error: err.message });

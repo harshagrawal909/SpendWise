@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import Feedback from '../models/Feedback.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { sendEmail } from '../utils/mail.js';
 
 const router = express.Router();
@@ -49,6 +50,21 @@ router.post('/', async (req, res) => {
         try {
             const admins = await User.find({ role: 'admin' });
             console.log(`[Feedback System] Found ${admins.length} administrators in the database.`);
+
+            // Create database notification for admins
+            try {
+                const senderName = feedbackData.name || feedbackData.email || 'Anonymous';
+                await Notification.create({
+                    title: '📩 New Feedback Submitted',
+                    body: `${senderName} submitted feedback: "${message.slice(0, 60)}${message.length > 60 ? '...' : ''}"`,
+                    sentBy: feedbackData.userId || null,
+                    targetRole: 'admin',
+                    recipientCount: admins.length
+                });
+                console.log('[Feedback System] Feedback notification document created for admins in database.');
+            } catch (notifErr) {
+                console.error('[Feedback System] Failed to create database notification for admins:', notifErr.message);
+            }
 
             // 1. Send Email Notification to Admins
             const adminEmails = admins.map(a => a.email).filter(Boolean);

@@ -215,9 +215,24 @@ router.patch('/feedback/:id/status', async (req, res) => {
             return res.status(404).json({ message: "Feedback not found" });
         }
 
-        // If resolved, send push notification and optional email to user
         if (status === 'resolved') {
             const replyMsg = resolutionMessage || 'Thank you! Your feedback has been resolved.';
+
+            // Create database notification for the user
+            if (feedback.userId) {
+                try {
+                    await Notification.create({
+                        title: '📢 Feedback Resolved',
+                        body: `Admin resolved: "${replyMsg.slice(0, 60)}${replyMsg.length > 60 ? '...' : ''}"`,
+                        sentBy: req.user.id,
+                        targetUserId: feedback.userId._id,
+                        recipientCount: 1
+                    });
+                    console.log(`[Feedback Resolution] Notification document created for user ID: ${feedback.userId._id}`);
+                } catch (notifErr) {
+                    console.error('[Feedback Resolution] Failed to create database notification for user:', notifErr.message);
+                }
+            }
             
             // 1. Send Push Notification via Expo
             if (feedback.userId && Array.isArray(feedback.userId.pushTokens) && feedback.userId.pushTokens.length > 0) {
