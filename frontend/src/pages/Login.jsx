@@ -228,12 +228,37 @@ export default function Login() {
             </div>
 
             {/* Upcoming Features */}
-            <div className="mt-6 border-t border-[#FEF3C7] pt-6">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Coming Soon</span>
-              <div className="flex flex-wrap gap-3 mt-2">
-                <span className="px-3 py-1.5 rounded-full bg-[#FFFDF4] text-[11px] font-bold text-[#1E1B4B] border border-[#FEF3C7]">💳 Multiple Transaction Accounts (Personal/Business)</span>
-                <span className="px-3 py-1.5 rounded-full bg-[#FFFDF4] text-[11px] font-bold text-[#1E1B4B] border border-[#FEF3C7]">🤖 AI-Powered Budgeting Helper</span>
-                <span className="px-3 py-1.5 rounded-full bg-[#FFFDF4] text-[11px] font-bold text-[#1E1B4B] border border-[#FEF3C7]">📸 Smart Receipt Scanner &amp; OCR</span>
+            <div className="mt-8 border-t border-[#FEF3C7] pt-6">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Coming Soon Features &amp; Insights</span>
+              <div className="grid gap-4 sm:grid-cols-3 mt-3">
+                
+                {/* Coming Soon 1: Multiple Transaction Accounts */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-4 shadow-2xs hover:shadow-sm transition duration-300">
+                  <div className="text-lg mb-1">💳</div>
+                  <h4 className="font-extrabold text-[#1E1B4B] text-xs">Multiple Accounts</h4>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-normal">
+                    Isolate your Personal spending from Business or Savings accounts. Keep separate balances and books under one profile.
+                  </p>
+                </div>
+                
+                {/* Coming Soon 2: AI Budgeting Helper */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-4 shadow-2xs hover:shadow-sm transition duration-300">
+                  <div className="text-lg mb-1">🤖</div>
+                  <h4 className="font-extrabold text-[#1E1B4B] text-xs">AI Budget Helper</h4>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-normal">
+                    Get custom alerts, anomalies alerts, and spend thresholds computed from historical habits to reach savings targets.
+                  </p>
+                </div>
+
+                {/* Coming Soon 3: Receipt Scanner & OCR */}
+                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-4 shadow-2xs hover:shadow-sm transition duration-300">
+                  <div className="text-lg mb-1">📸</div>
+                  <h4 className="font-extrabold text-[#1E1B4B] text-xs">Receipt Scanner &amp; OCR</h4>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-normal">
+                    Auto-extract transaction amounts, dates, and merchant info simply by snapping or uploading receipt photos.
+                  </p>
+                </div>
+
               </div>
             </div>
           </div>

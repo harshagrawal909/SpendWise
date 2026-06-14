@@ -220,6 +220,7 @@ router.patch('/feedback/:id/status', async (req, res) => {
             
             // 1. Send Push Notification via Expo
             if (feedback.userId && Array.isArray(feedback.userId.pushTokens) && feedback.userId.pushTokens.length > 0) {
+                console.log(`[Feedback Resolution] Dispatching push to user: ${feedback.userId.name || 'User'}. Tokens count: ${feedback.userId.pushTokens.length}. Tokens:`, feedback.userId.pushTokens);
                 const messages = feedback.userId.pushTokens.map(pushToken => ({
                     to: pushToken,
                     sound: 'default',
@@ -229,7 +230,8 @@ router.patch('/feedback/:id/status', async (req, res) => {
                 }));
 
                 try {
-                    await fetch('https://exp.host/--/api/v2/push/send', {
+                    console.log('[Feedback Resolution] Sending push notification to Expo service...');
+                    const response = await fetch('https://exp.host/--/api/v2/push/send', {
                         method: 'POST',
                         headers: {
                             'Accept': 'application/json',
@@ -238,36 +240,61 @@ router.patch('/feedback/:id/status', async (req, res) => {
                         },
                         body: JSON.stringify(messages),
                     });
+                    
+                    const resData = await response.json();
+                    console.log('[Feedback Resolution] Expo API Response:', JSON.stringify(resData));
                 } catch (pushErr) {
-                    console.error('Expo push error for feedback resolution:', pushErr.message);
+                    console.error('[Feedback Resolution] Expo push error for feedback resolution:', pushErr.message);
                 }
+            } else {
+                console.log('[Feedback Resolution] No registered push tokens found for this user. Push notification skipped.');
             }
 
             // 2. Send optional email using nodemailer
             const userEmail = feedback.email || feedback.userId?.email;
-            if (userEmail && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-                try {
-                    const nodemailer = await import('nodemailer');
-                    const transporter = (nodemailer.default || nodemailer).createTransport({
-                        service: 'gmail',
-                        auth: {
-                            user: process.env.EMAIL_USER,
-                            pass: process.env.EMAIL_PASS,
-                        },
-                    });
+            if (userEmail) {
+                if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                    try {
+                        const nodemailer = await import('nodemailer');
+                        
+                        const transportConfig = {
+                            auth: {
+                                user: process.env.EMAIL_USER,
+                                pass: process.env.EMAIL_PASS,
+                            }
+                        };
 
-                    const mailOptions = {
-                        from: `"SpendWise Admin" <${process.env.EMAIL_USER}>`,
-                        to: userEmail,
-                        subject: 'SpendWise Feedback Resolution',
-                        text: `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`,
-                        html: `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`,
-                    };
+                        if (process.env.EMAIL_HOST) {
+                            transportConfig.host = process.env.EMAIL_HOST;
+                            transportConfig.port = parseInt(process.env.EMAIL_PORT || '587');
+                            transportConfig.secure = process.env.EMAIL_SECURE === 'true';
+                            console.log(`[Feedback Resolution] Using custom SMTP server config: ${transportConfig.host}:${transportConfig.port} (secure: ${transportConfig.secure})`);
+                        } else {
+                            transportConfig.service = process.env.EMAIL_SERVICE || 'gmail';
+                            console.log(`[Feedback Resolution] Using standard email service config: ${transportConfig.service}`);
+                        }
 
-                    await transporter.sendMail(mailOptions);
-                } catch (emailErr) {
-                    console.error('Nodemailer error for feedback resolution:', emailErr.message);
+                        const transporter = (nodemailer.default || nodemailer).createTransport(transportConfig);
+
+                        const mailOptions = {
+                            from: `"SpendWise Admin" <${process.env.EMAIL_USER}>`,
+                            to: userEmail,
+                            subject: 'SpendWise Feedback Resolution',
+                            text: `Hello,\n\nYour feedback has been resolved by an administrator.\n\nResolution details:\n"${replyMsg}"\n\nThank you for using SpendWise!`,
+                            html: `<p>Hello,</p><p>Your feedback has been resolved by an administrator.</p><p><strong>Resolution details:</strong><br/>"${replyMsg}"</p><p>Thank you for using SpendWise!</p>`,
+                        };
+
+                        console.log(`[Feedback Resolution] Dispatching resolution email to: ${userEmail}`);
+                        const info = await transporter.sendMail(mailOptions);
+                        console.log('[Feedback Resolution] Email sent successfully. Info:', info.messageId || info);
+                    } catch (emailErr) {
+                        console.error('[Feedback Resolution] Nodemailer error for feedback resolution:', emailErr.message);
+                    }
+                } else {
+                    console.warn('[Feedback Resolution] Email resolution skipped: EMAIL_USER and/or EMAIL_PASS environment variables are not defined in .env');
                 }
+            } else {
+                console.log('[Feedback Resolution] No email address associated with this feedback or user. Email skipped.');
             }
         }
 

@@ -28,13 +28,19 @@ router.put('/push-token', authMiddleware, async (req, res) => {
 
         const user = await User.findById(req.user.id);
         if (!user) {
+            console.log(`[Push Token Registration] Failed: User with ID ${req.user.id} not found.`);
             return res.status(404).json({ message: "User not found" });
         }
+
+        console.log(`[Push Token Registration] Incoming request from User ID: ${user._id}, Name: ${user.name}, Token: ${pushToken}`);
 
         // Add token if not already present
         if (!user.pushTokens.includes(pushToken)) {
             user.pushTokens.push(pushToken);
             await user.save();
+            console.log(`[Push Token Registration] Token registered successfully. Current tokens array count: ${user.pushTokens.length}`);
+        } else {
+            console.log(`[Push Token Registration] Token already exists in database for this user. Array count: ${user.pushTokens.length}`);
         }
 
         res.json({ message: "Push token registered successfully" });
