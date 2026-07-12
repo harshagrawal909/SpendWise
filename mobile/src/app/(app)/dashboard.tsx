@@ -154,11 +154,6 @@ export default function DashboardScreen() {
                   <Text style={styles.switcherName} numberOfLines={1}>
                     {acc.name}
                   </Text>
-                  {acc.isDefault && (
-                    <View style={styles.defaultBadge}>
-                      <Text style={styles.defaultBadgeText}>★</Text>
-                    </View>
-                  )}
                 </View>
                 <Text style={styles.switcherBalance}>
                   {formatCurrency(acc.balance || 0, userCurrency)}

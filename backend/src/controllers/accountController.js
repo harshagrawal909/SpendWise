@@ -1,5 +1,6 @@
 import Account from '../models/Account.js';
 import Expense from '../models/Expense.js';
+import { updateAccountBalance } from '../utils/accountHelper.js';
 
 // Get all accounts for user. Auto-create default account if none exists.
 export const getAccounts = async (req, res) => {
@@ -24,6 +25,9 @@ export const getAccounts = async (req, res) => {
                 { account: defaultAccount._id }
             );
         }
+
+        // Sort so the default/primary account is always first in the list
+        accounts.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0));
 
         res.json(accounts);
     } catch (err) {
@@ -64,13 +68,32 @@ export const createAccount = async (req, res) => {
         const newAccount = new Account({
             user: userId,
             name: name.trim(),
-            balance: Number(balance) || 0,
+            balance: 0, // balance will be computed from the initial transaction if any
             isDefault: !!isDefault || count === 0, // Force default if it's the first account
             color: color || '#4F46E5'
         });
 
         await newAccount.save();
-        res.status(201).json(newAccount);
+
+        const initialBal = Number(balance) || 0;
+        if (initialBal > 0) {
+            const initialExpense = new Expense({
+                user: userId,
+                account: newAccount._id,
+                amount: initialBal,
+                convertedAmount: initialBal,
+                category: 'Starting Balance',
+                description: `Starting Balance`,
+                type: 'INCOME',
+                date: new Date()
+            });
+            await initialExpense.save();
+            await updateAccountBalance(newAccount._id);
+        }
+
+        // Refresh the account from database to return the calculated balance
+        const refreshedAccount = await Account.findById(newAccount._id);
+        res.status(201).json(refreshedAccount);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -152,6 +175,9 @@ export const deleteAccount = async (req, res) => {
             { user: userId, account: accountId },
             { account: defaultAccount._id }
         );
+
+        // Recalculate default account balance
+        await updateAccountBalance(defaultAccount._id);
 
         // Delete the account
         await Account.deleteOne({ _id: accountId, user: userId });

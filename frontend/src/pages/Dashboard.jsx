@@ -196,7 +196,6 @@ export default function Dashboard() {
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate max-w-[100px]">
                       {acc.name}
                     </span>
-                    {acc.isDefault && <Badge variant="success" className="px-1 py-0 text-[9px]">Default</Badge>}
                   </div>
                 </div>
                 <div className="mt-4 text-base font-black text-slate-900">

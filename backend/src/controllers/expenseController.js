@@ -2,6 +2,7 @@ import Expense from '../models/Expense.js';
 import User from '../models/User.js';
 import Account from '../models/Account.js';
 import { convertCurrency } from '../utils/currency.js';
+import { updateAccountBalance } from '../utils/accountHelper.js';
 import mongoose from "mongoose";
 
 export const addExpense = async (req, res) => {
@@ -40,6 +41,7 @@ export const addExpense = async (req, res) => {
             account: accountId
         });
         await newExpense.save();
+        await updateAccountBalance(accountId);
         
         // Populate account info for frontend
         const populated = await Expense.findById(newExpense._id).populate('account');
@@ -112,13 +114,23 @@ export const updateExpense = async (req, res) => {
             { ...req.body, convertedAmount },
             { new: true }
         ).populate('account');
+
+        await updateAccountBalance(existing.account);
+        if (req.body.account && String(req.body.account) !== String(existing.account)) {
+            await updateAccountBalance(req.body.account);
+        }
+
         res.json(updated);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 export const deleteExpense = async (req, res) => {
     try {
-        await Expense.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+        const existing = await Expense.findOne({ _id: req.params.id, user: req.user.id });
+        if (existing) {
+            await Expense.deleteOne({ _id: req.params.id, user: req.user.id });
+            await updateAccountBalance(existing.account);
+        }
         res.json({ message: "Expense deleted" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
