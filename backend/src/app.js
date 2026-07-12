@@ -13,6 +13,7 @@ import adminRoutes from './routes/admin.js';
 import notificationRoutes from './routes/notification.js';
 import downloadRoutes from './routes/download.js';
 import feedbackRoutes from './routes/feedback.js';
+import accountRoutes from './routes/account.js';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get('/health', (req, res) => res.status(200).send('OK'));
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', authMiddleware, expenseRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/accounts', authMiddleware, accountRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/download', downloadRoutes);

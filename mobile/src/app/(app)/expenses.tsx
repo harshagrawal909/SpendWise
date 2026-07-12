@@ -47,6 +47,8 @@ export default function ExpensesScreen() {
   const [sort, setSort] = useState('desc');
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [userCurrency, setUserCurrency] = useState('INR');
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -60,17 +62,20 @@ export default function ExpensesScreen() {
     setError('');
     setLoading(true);
     try {
-      const [res, userRes] = await Promise.all([
+      const [res, userRes, accountsRes] = await Promise.all([
         getTransactions({
           category: category || undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: sort || undefined,
+          accountId: selectedAccountId || undefined,
         }),
         API.get('/users/me').catch(() => ({ data: { currency: 'INR' } })),
+        API.get('/accounts').catch(() => ({ data: [] })),
       ]);
       setItems(res);
       setUserCurrency(userRes.data?.currency || 'INR');
+      setAccounts(accountsRes.data || []);
     } catch (e: unknown) {
       console.error('Error in expenses.tsx fetchList:', e);
       const err = e as { message?: string };
@@ -78,7 +83,7 @@ export default function ExpensesScreen() {
     } finally {
       setLoading(false);
     }
-  }, [category, startDate, endDate, sort]);
+  }, [category, startDate, endDate, sort, selectedAccountId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -91,6 +96,7 @@ export default function ExpensesScreen() {
     setStartDate('');
     setEndDate('');
     setSort('desc');
+    setSelectedAccountId('');
   };
 
   const handleDelete = (id: string) => {
@@ -127,6 +133,7 @@ export default function ExpensesScreen() {
         description: updated.description,
         type: updated.type as 'EXPENSE' | 'INCOME',
         currency: updated.currency || 'INR',
+        account: updated.account || undefined,
       });
       setEditing(null);
       notifyTransactionChange();
@@ -154,10 +161,16 @@ export default function ExpensesScreen() {
         </CardHeader>
         <CardBody>
           <Select
+            label="Account"
+            value={selectedAccountId}
+            onValueChange={setSelectedAccountId}
+            options={[{ label: 'All Accounts', value: '' }, ...accounts.map((acc) => ({ label: acc.name, value: acc._id }))]}
+          />
+          <Select
             label="Category"
             value={category}
             onValueChange={setCategory}
-            options={[{ label: 'All', value: '' }, ...categories.map((c) => ({ label: c, value: c }))]}
+            options={[{ label: 'All Categories', value: '' }, ...categories.map((c) => ({ label: c, value: c }))]}
           />
           <DatePickerField label="Start date" value={startDate} onChange={setStartDate} />
           <DatePickerField
@@ -201,6 +214,11 @@ export default function ExpensesScreen() {
                     <View style={styles.txHeader}>
                       <Text style={styles.txCategory}>{t?.category ?? '—'}</Text>
                       <Badge label={isExpense ? 'Expense' : 'Income'} variant={isExpense ? 'danger' : 'success'} />
+                      {t?.account && (
+                        <View style={[styles.txAccountBadge, { backgroundColor: t.account.color || SpendWiseTheme.primary }]}>
+                          <Text style={styles.txAccountBadgeText}>{t.account.name}</Text>
+                        </View>
+                      )}
                       {isPending ? (
                         <Ionicons name="cloud-upload-outline" size={14} color="#F59E0B" style={styles.pendingIcon} />
                       ) : null}
@@ -240,6 +258,7 @@ export default function ExpensesScreen() {
         onSave={handleSaveEdit}
         loading={actionLoading}
         userCurrency={userCurrency}
+        accounts={accounts}
       />
     </ScreenContainer>
   );
@@ -252,6 +271,7 @@ function EditModal({
   onSave,
   loading,
   userCurrency,
+  accounts,
 }: {
   open: boolean;
   initial: Transaction | null;
@@ -259,6 +279,7 @@ function EditModal({
   onSave: (t: TransactionFormData & { id: string }) => Promise<void>;
   loading: boolean;
   userCurrency: string;
+  accounts: any[];
 }) {
   const [form, setForm] = useState<TransactionFormData & { id: string } | null>(null);
 
@@ -272,6 +293,7 @@ function EditModal({
         description: initial.description ?? '',
         type: initial.type ?? 'EXPENSE',
         currency: initial.currency ?? 'INR',
+        account: typeof initial.account === 'object' ? initial.account?._id : initial.account,
       });
     } else {
       setForm(null);
@@ -288,7 +310,7 @@ function EditModal({
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>Edit transaction</Text>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TransactionFormFields form={form} onChange={(f) => setForm({ ...form, ...f })} userCurrency={userCurrency} />
+            <TransactionFormFields form={form} onChange={(f) => setForm({ ...form, ...f })} userCurrency={userCurrency} accounts={accounts} />
             <View style={styles.row}>
               <Button title="Cancel" variant="outline" onPress={onClose} disabled={loading} />
               <Button title="Save changes" onPress={() => onSave(form)} loading={loading} />
@@ -358,4 +380,15 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
   },
   modalTitle: { fontSize: 18, fontWeight: '800', color: SpendWiseTheme.text, marginBottom: 12 },
+  txAccountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 4,
+  },
+  txAccountBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
 });

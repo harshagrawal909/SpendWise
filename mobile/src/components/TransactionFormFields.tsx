@@ -13,15 +13,17 @@ export type TransactionFormData = {
   description: string;
   type: string;
   currency?: string;
+  account?: string;
 };
 
 type TransactionFormFieldsProps = {
   form: TransactionFormData;
   onChange: (form: TransactionFormData) => void;
   userCurrency?: string;
+  accounts?: { _id: string; name: string }[];
 };
 
-export function TransactionFormFields({ form, onChange, userCurrency }: TransactionFormFieldsProps) {
+export function TransactionFormFields({ form, onChange, userCurrency, accounts = [] }: TransactionFormFieldsProps) {
   return (
     <View style={styles.wrap}>
       <Input
@@ -36,6 +38,12 @@ export function TransactionFormFields({ form, onChange, userCurrency }: Transact
         value={form.currency || userCurrency || 'INR'}
         onValueChange={(v) => onChange({ ...form, currency: v })}
         options={SUPPORTED_CURRENCIES.map((c) => ({ label: c.name, value: c.code }))}
+      />
+      <Select
+        label="Account"
+        value={form.account || ''}
+        onValueChange={(v) => onChange({ ...form, account: v })}
+        options={accounts.map((acc) => ({ label: acc.name, value: acc._id }))}
       />
       <Input
         label="Category"

@@ -60,6 +60,8 @@ export default function AnalyticsScreen() {
   const [endDate, setEndDate] = useState('');
   const [sort, setSort] = useState('desc');
   const [userCurrency, setUserCurrency] = useState('INR');
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -76,24 +78,27 @@ export default function AnalyticsScreen() {
     setError('');
     setLoading(true);
     try {
-      const [res, userRes] = await Promise.all([
+      const [res, userRes, accountsRes] = await Promise.all([
         getTransactions({
           category: category || undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: sort || undefined,
+          accountId: selectedAccountId || undefined,
         }),
         API.get('/users/me').catch(() => ({ data: { currency: 'INR' } })),
+        API.get('/accounts').catch(() => ({ data: [] })),
       ]);
       setItems(res);
       setUserCurrency(userRes.data?.currency || 'INR');
+      setAccounts(accountsRes.data || []);
     } catch (e: unknown) {
       const err = e as { message?: string };
       setError(err?.message ?? 'Could not load analytics.');
     } finally {
       setLoading(false);
     }
-  }, [category, startDate, endDate, sort]);
+  }, [category, startDate, endDate, sort, selectedAccountId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -110,10 +115,16 @@ export default function AnalyticsScreen() {
         </CardHeader>
         <CardBody>
           <Select
+            label="Account"
+            value={selectedAccountId}
+            onValueChange={setSelectedAccountId}
+            options={[{ label: 'All Accounts (Total)', value: '' }, ...accounts.map((acc) => ({ label: acc.name, value: acc._id }))]}
+          />
+          <Select
             label="Category"
             value={category}
             onValueChange={setCategory}
-            options={[{ label: 'All', value: '' }, ...categoryOptions.map((c) => ({ label: c, value: c }))]}
+            options={[{ label: 'All Categories', value: '' }, ...categoryOptions.map((c) => ({ label: c, value: c }))]}
           />
           <DatePickerField label="Start date" value={startDate} onChange={setStartDate} />
           <DatePickerField
@@ -141,6 +152,7 @@ export default function AnalyticsScreen() {
                 setStartDate('');
                 setEndDate('');
                 setSort('desc');
+                setSelectedAccountId('');
               }}
               disabled={loading}
             />

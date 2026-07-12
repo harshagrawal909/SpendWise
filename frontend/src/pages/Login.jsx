@@ -278,11 +278,14 @@ export default function Login() {
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Coming Soon Features &amp; Insights</span>
               <div className="grid gap-4 sm:grid-cols-3 mt-3">
                 
-                {/* Coming Soon 1: Multiple Transaction Accounts */}
-                <div className="rounded-2xl border border-[#FEF3C7] bg-[#FFFDF4] p-4 shadow-2xs hover:shadow-sm transition duration-300">
+                {/* Launched: Multiple Transaction Accounts */}
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4 shadow-2xs hover:shadow-sm transition duration-300 relative overflow-hidden">
+                  <span className="absolute top-2 right-2 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black text-emerald-800 uppercase tracking-wider">
+                    Released
+                  </span>
                   <div className="text-lg mb-1">💳</div>
                   <h4 className="font-extrabold text-[#1E1B4B] text-xs">Multiple Accounts</h4>
-                  <p className="mt-1 text-[11px] text-slate-500 leading-normal">
+                  <p className="mt-1 text-[11px] text-slate-600 leading-normal">
                     Isolate your Personal spending from Business or Savings accounts. Keep separate balances and books under one profile.
                   </p>
                 </div>

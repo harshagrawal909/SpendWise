@@ -66,12 +66,14 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [userCurrency, setUserCurrency] = useState("INR");
+  const [accounts, setAccounts] = useState([]);
 
-  // same filters as /expenses/filter
+  // filters
   const [category, setCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sort, setSort] = useState("desc");
+  const [selectedAccountId, setSelectedAccountId] = useState("");
 
   const categoryOptions = useMemo(() => {
     const set = new Set();
@@ -86,19 +88,22 @@ export default function Analytics() {
     setError("");
     setLoading(true);
     try {
-      const [res, userRes] = await Promise.all([
+      const [res, userRes, accountsRes] = await Promise.all([
         API.get("/expenses/filter", {
           params: {
             category: category || undefined,
             startDate: startDate || undefined,
             endDate: endDate || undefined,
             sort: sort || undefined,
+            accountId: selectedAccountId || undefined,
           },
         }),
-        API.get("/users/me").catch(() => ({ data: { currency: "INR" } }))
+        API.get("/users/me").catch(() => ({ data: { currency: "INR" } })),
+        API.get("/accounts")
       ]);
       setItems(Array.isArray(res.data) ? res.data : []);
       setUserCurrency(userRes.data?.currency || "INR");
+      setAccounts(accountsRes.data || []);
     } catch (e) {
       setError(e?.response?.data?.message || "Could not load analytics.");
     } finally {
@@ -119,9 +124,17 @@ export default function Analytics() {
           <CardSubtitle>Charts update based on your selected filters.</CardSubtitle>
         </CardHeader>
         <CardBody>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
+            <Select label="Account" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+              <option value="">All Accounts (Total)</option>
+              {accounts.map((acc) => (
+                <option key={acc._id} value={acc._id}>
+                  {acc.name}
+                </option>
+              ))}
+            </Select>
             <Select label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">All</option>
+              <option value="">All Categories</option>
               {categoryOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -147,6 +160,7 @@ export default function Analytics() {
                 setStartDate("");
                 setEndDate("");
                 setSort("desc");
+                setSelectedAccountId("");
                 setTimeout(fetchData, 0);
               }}
               disabled={loading}

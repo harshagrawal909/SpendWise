@@ -20,13 +20,20 @@ function EmptyState({ title, subtitle, action }) {
   );
 }
 
-function EditModal({ open, initial, onClose, onSave, userCurrency }) {
+function EditModal({ open, initial, onClose, onSave, userCurrency, accounts = [] }) {
   const [form, setForm] = useState(initial ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setForm(initial ?? null);
+    if (initial) {
+      setForm({
+        ...initial,
+        account: initial.account?._id || initial.account || ""
+      });
+    } else {
+      setForm(null);
+    }
     setError("");
     setSaving(false);
   }, [initial, open]);
@@ -80,6 +87,19 @@ function EditModal({ open, initial, onClose, onSave, userCurrency }) {
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Account"
+              value={form.account || ""}
+              onChange={(e) => setForm({ ...form, account: e.target.value })}
+              required
+            >
+              <option value="" disabled>Select Account</option>
+              {accounts.map((acc) => (
+                <option key={acc._id} value={acc._id}>
+                  {acc.name}
                 </option>
               ))}
             </Select>
@@ -148,12 +168,14 @@ export default function ExpensesPage() {
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [userCurrency, setUserCurrency] = useState("INR");
+  const [accounts, setAccounts] = useState([]);
 
   // filters
   const [category, setCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sort, setSort] = useState("desc");
+  const [selectedAccountId, setSelectedAccountId] = useState("");
 
   // edit
   const [editing, setEditing] = useState(null);
@@ -170,8 +192,8 @@ export default function ExpensesPage() {
     setError("");
     setLoading(true);
     try {
-      const hasFilter = category || (startDate && endDate) || sort;
-      const [res, userRes] = await Promise.all([
+      const hasFilter = category || (startDate && endDate) || sort || selectedAccountId;
+      const [res, userRes, accountsRes] = await Promise.all([
         hasFilter
           ? API.get("/expenses/filter", {
               params: {
@@ -179,14 +201,17 @@ export default function ExpensesPage() {
                 startDate: startDate || undefined,
                 endDate: endDate || undefined,
                 sort: sort || undefined,
+                accountId: selectedAccountId || undefined,
               },
             })
           : API.get("/expenses"),
-        API.get("/users/me").catch(() => ({ data: { currency: "INR" } }))
+        API.get("/users/me").catch(() => ({ data: { currency: "INR" } })),
+        API.get("/accounts")
       ]);
 
       setItems(Array.isArray(res.data) ? res.data : []);
       setUserCurrency(userRes.data?.currency || "INR");
+      setAccounts(accountsRes.data || []);
     } catch (e) {
       setError(e?.response?.data?.message || "Could not load transactions.");
     } finally {
@@ -208,6 +233,7 @@ export default function ExpensesPage() {
     setStartDate("");
     setEndDate("");
     setSort("desc");
+    setSelectedAccountId("");
     // fetch after state flush
     setTimeout(fetchList, 0);
   };
@@ -252,13 +278,26 @@ export default function ExpensesPage() {
           <CardSubtitle>Manage, filter, sort, edit, and delete transactions.</CardSubtitle>
         </CardHeader>
         <CardBody>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
+            <Select
+              label="Account"
+              value={selectedAccountId}
+              onChange={(e) => setSelectedAccountId(e.target.value)}
+            >
+              <option value="">All Accounts</option>
+              {accounts.map((acc) => (
+                <option key={acc._id} value={acc._id}>
+                  {acc.name}
+                </option>
+              ))}
+            </Select>
+
             <Select
               label="Category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="">All</option>
+              <option value="">All Categories</option>
               {categories.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -344,6 +383,17 @@ export default function ExpensesPage() {
                             {t?.category ?? "—"}
                           </div>
                           <Badge variant={badgeVariant}>{isExpense ? "Expense" : "Income"}</Badge>
+                          {t?.account && (
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-lg border text-white"
+                              style={{
+                                backgroundColor: t.account.color || "#4F46E5",
+                                borderColor: t.account.color || "#4F46E5"
+                              }}
+                            >
+                              {t.account.name}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">{formatDisplayDate(t?.date)}</div>
                         <div className={["mt-1 text-base font-extrabold", amountCls].join(" ")}>
@@ -397,6 +447,7 @@ export default function ExpensesPage() {
         onClose={() => setEditing(null)}
         onSave={handleSaveEdit}
         userCurrency={userCurrency}
+        accounts={accounts}
       />
     </div>
   );

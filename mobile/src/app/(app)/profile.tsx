@@ -298,6 +298,19 @@ export default function ProfileScreen() {
               <Text style={styles.currencySelectArrow}>▼</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>TRANSACTION ACCOUNTS</Text>
+            <TouchableOpacity 
+              onPress={() => router.push('/accounts' as any)}
+              style={styles.currencySelectRow}
+            >
+              <Text style={styles.currencySelectValue}>
+                Manage Wallets/Accounts
+              </Text>
+              <Text style={styles.currencySelectArrow}>▶</Text>
+            </TouchableOpacity>
+          </View>
  
           <Button title="Logout" variant="outline" onPress={handleLogout} />
 

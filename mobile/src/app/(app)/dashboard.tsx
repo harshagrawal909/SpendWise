@@ -1,6 +1,6 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import API from '@/services/api';
 import { formatCurrency } from '@/utils/currency';
@@ -25,18 +25,38 @@ export default function DashboardScreen() {
   const [error, setError] = useState('');
   const [notifVisible, setNotifVisible] = useState(false);
   const [userCurrency, setUserCurrency] = useState('INR');
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = async (overrideAccountId?: string | null) => {
     setError('');
     setLoading(true);
     try {
-      const [summaryData, allTransactions, userRes] = await Promise.all([
-        getSummary(),
-        getTransactions(),
+      const activeId = overrideAccountId !== undefined ? overrideAccountId : selectedAccountId;
+      const [accountsRes, userRes] = await Promise.all([
+        API.get('/accounts').catch(() => ({ data: [] })),
         API.get('/users/me').catch(() => ({ data: { currency: 'INR' } })),
       ]);
-      setSummary(summaryData);
+
+      const loadedAccounts = accountsRes.data || [];
+      setAccounts(loadedAccounts);
       setUserCurrency(userRes.data?.currency || 'INR');
+
+      const defaultAcc = loadedAccounts.find((a: any) => a.isDefault);
+      
+      let filterId = activeId;
+      if (!filterId && defaultAcc) {
+        filterId = defaultAcc._id;
+        setSelectedAccountId(defaultAcc._id);
+      }
+
+      const [summaryData, allTransactions] = await Promise.all([
+        getSummary(filterId || undefined),
+        getTransactions({ accountId: filterId || undefined }),
+      ]);
+
+      setSummary(summaryData);
+      
       const sorted = [...allTransactions].sort((a, b) => String(b?.date ?? '').localeCompare(String(a?.date ?? '')));
       setRecent(sorted.slice(0, 5));
     } catch (e: unknown) {
@@ -46,12 +66,12 @@ export default function DashboardScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [fetchData, refreshKey]),
+    }, [refreshKey, selectedAccountId])
   );
 
   const quickStats = useMemo(() => {
@@ -105,6 +125,61 @@ export default function DashboardScreen() {
         <SyncStatusBadge syncState={syncState} pendingCount={pendingCount} onPress={triggerSync} />
       </View>
 
+      {/* Account Switcher Bar */}
+      {accounts.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.switcherContainer}
+          style={styles.switcherScroll}
+        >
+          {accounts.map((acc) => {
+            const isSelected = selectedAccountId === acc._id;
+            return (
+              <TouchableOpacity
+                key={acc._id}
+                onPress={() => {
+                  setSelectedAccountId(acc._id);
+                  fetchData(acc._id);
+                }}
+                activeOpacity={0.7}
+                style={[
+                  styles.switcherCard,
+                  isSelected ? styles.switcherCardSelected : null,
+                ]}
+              >
+                {/* Color indicator line */}
+                <View style={[styles.switcherColorLine, { backgroundColor: acc.color }]} />
+                <View style={styles.switcherHeader}>
+                  <Text style={styles.switcherName} numberOfLines={1}>
+                    {acc.name}
+                  </Text>
+                  {acc.isDefault && (
+                    <View style={styles.defaultBadge}>
+                      <Text style={styles.defaultBadgeText}>★</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.switcherBalance}>
+                  {formatCurrency(acc.balance || 0, userCurrency)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {accounts.length < 3 && (
+            <TouchableOpacity
+              onPress={() => router.push('/accounts' as any)}
+              activeOpacity={0.7}
+              style={[styles.switcherCard, styles.switcherCardAdd]}
+            >
+              <Ionicons name="add-circle-outline" size={22} color={SpendWiseTheme.muted} />
+              <Text style={styles.switcherAddText}>Add Wallet</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      )}
+
       {loading ? (
         <ActivityIndicator color={SpendWiseTheme.primary} style={styles.loader} />
       ) : (
@@ -133,6 +208,11 @@ export default function DashboardScreen() {
                     <View style={styles.txTop}>
                       <Text style={styles.txCategory}>{t?.category ?? '—'}</Text>
                       <Badge label={isExpense ? 'Expense' : 'Income'} variant={isExpense ? 'danger' : 'success'} />
+                      {t?.account && (
+                        <View style={[styles.txAccountBadge, { backgroundColor: t.account.color || SpendWiseTheme.primary }]}>
+                          <Text style={styles.txAccountBadgeText}>{t.account.name}</Text>
+                        </View>
+                      )}
                       {isPending ? (
                         <Ionicons name="cloud-upload-outline" size={14} color="#F59E0B" style={styles.pendingIcon} />
                       ) : null}
@@ -264,5 +344,91 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
     borderWidth: 1.5,
     borderColor: '#F1F5F9',
+  },
+  switcherScroll: {
+    marginVertical: 4,
+  },
+  switcherContainer: {
+    gap: 10,
+    paddingRight: 16,
+  },
+  switcherCard: {
+    width: 140,
+    height: 90,
+    borderRadius: SpendWiseTheme.radius,
+    borderWidth: 1,
+    borderColor: SpendWiseTheme.border,
+    backgroundColor: SpendWiseTheme.surface,
+    padding: 12,
+    justifyContent: 'space-between',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  switcherCardSelected: {
+    borderColor: SpendWiseTheme.primary,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1.5,
+  },
+  switcherCardAdd: {
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    gap: 4,
+  },
+  switcherAddText: {
+    fontSize: 11,
+    color: SpendWiseTheme.muted,
+    fontWeight: '700',
+  },
+  switcherColorLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+  },
+  switcherHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  switcherName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: SpendWiseTheme.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  switcherBalance: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: SpendWiseTheme.text,
+  },
+  defaultBadge: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: SpendWiseTheme.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  defaultBadgeText: {
+    fontSize: 9,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  txAccountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 4,
+  },
+  txAccountBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

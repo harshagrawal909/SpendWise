@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
   const [recent, setRecent] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
 
   const [userCurrency, setUserCurrency] = useState("INR");
   const [form, setForm] = useState({
@@ -28,6 +30,7 @@ export default function Dashboard() {
     description: "",
     type: "EXPENSE",
     currency: "",
+    account: ""
   });
 
   useEffect(() => {
@@ -37,18 +40,38 @@ export default function Dashboard() {
   }, [userCurrency]);
   const navigate = useNavigate();
 
-  const fetchData = async () => {
+  const fetchData = async (overrideAccountId = undefined) => {
     setError("");
     setLoading(true);
     try {
+      const accountsRes = await API.get("/accounts");
+      const loadedAccounts = accountsRes.data || [];
+      setAccounts(loadedAccounts);
+
+      const defaultAcc = loadedAccounts.find(a => a.isDefault);
+      
+      let filterId = overrideAccountId !== undefined ? overrideAccountId : selectedAccountId;
+      if (!filterId && defaultAcc) {
+        filterId = defaultAcc._id;
+        setSelectedAccountId(defaultAcc._id);
+      }
+
+      const params = filterId ? { accountId: filterId } : {};
+
       const [summaryRes, expenseRes, userRes] = await Promise.all([
-        API.get("/expenses/summary"),
-        API.get("/expenses"),
+        API.get("/expenses/summary", { params }),
+        API.get("/expenses", { params }),
         API.get("/users/me").catch(() => ({ data: { currency: "INR" } }))
       ]);
 
       setSummary(summaryRes.data ?? {});
       setUserCurrency(userRes.data?.currency || "INR");
+
+      setForm(prev => ({
+        ...prev,
+        account: prev.account || (filterId || defaultAcc?._id || "")
+      }));
+
       const all = Array.isArray(expenseRes.data) ? expenseRes.data : [];
       const sorted = [...all].sort((a, b) => String(b?.date ?? "").localeCompare(String(a?.date ?? "")));
       setRecent(sorted.slice(0, 5));
@@ -65,6 +88,13 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleAccountSelect = (accountId) => {
+    if (!accountId) return;
+    setSelectedAccountId(accountId);
+    setForm(prev => ({ ...prev, account: accountId }));
+    fetchData(accountId);
+  };
 
   const handleDelete = async (id) => {
     const ok = window.confirm("Delete this transaction?");
@@ -91,6 +121,7 @@ export default function Dashboard() {
         ...form,
         currency: form.currency || userCurrency
       });
+      const defaultAcc = accounts.find(a => a.isDefault);
       setForm({
         amount: "",
         category: "",
@@ -98,6 +129,7 @@ export default function Dashboard() {
         description: "",
         type: "EXPENSE",
         currency: userCurrency,
+        account: selectedAccountId || defaultAcc?._id || ""
       });
       toast.push({ tone: "success", title: "Saved", message: "Transaction added." });
       await fetchData();
@@ -141,6 +173,52 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Account Switcher Bar */}
+      {!loading && accounts.length > 0 && (
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+          {accounts.map((acc) => {
+            const isSelected = selectedAccountId === acc._id;
+            return (
+              <button
+                key={acc._id}
+                onClick={() => handleAccountSelect(acc._id)}
+                className={`flex-shrink-0 flex flex-col justify-between p-4 w-44 h-28 rounded-2xl border transition-all text-left relative overflow-hidden ${
+                  isSelected
+                    ? "border-indigo-600 bg-indigo-50/20 ring-1 ring-indigo-600"
+                    : "border-slate-200 bg-[rgb(var(--surface))] hover:border-slate-300"
+                }`}
+              >
+                {/* Color indicator line */}
+                <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: acc.color }} />
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate max-w-[100px]">
+                      {acc.name}
+                    </span>
+                    {acc.isDefault && <Badge variant="success" className="px-1 py-0 text-[9px]">Default</Badge>}
+                  </div>
+                </div>
+                <div className="mt-4 text-base font-black text-slate-900">
+                  {formatCurrency(acc.balance || 0, userCurrency)}
+                </div>
+              </button>
+            );
+          })}
+
+          {accounts.length < 3 && (
+            <button
+              onClick={() => navigate("/accounts")}
+              className="flex-shrink-0 flex flex-col justify-center items-center p-4 w-44 h-28 rounded-2xl border border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/10 text-slate-500 hover:text-indigo-600 transition text-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 mb-1 text-slate-400 group-hover:text-indigo-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span className="text-xs font-bold uppercase tracking-wider">Add Account</span>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         {loading ? (
@@ -208,6 +286,19 @@ export default function Dashboard() {
                 {SUPPORTED_CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label="Account"
+                value={form.account}
+                onChange={(e) => setForm({ ...form, account: e.target.value })}
+                required
+              >
+                <option value="" disabled>Select Account</option>
+                {accounts.map((acc) => (
+                  <option key={acc._id} value={acc._id}>
+                    {acc.name} {acc.isDefault ? "(Default)" : ""}
                   </option>
                 ))}
               </Select>
@@ -288,6 +379,17 @@ export default function Dashboard() {
                           <Badge variant={isExpense ? "danger" : "success"}>
                             {isExpense ? "Expense" : "Income"}
                           </Badge>
+                          {t?.account && (
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-lg border text-white"
+                              style={{
+                                backgroundColor: t.account.color || "#4F46E5",
+                                borderColor: t.account.color || "#4F46E5"
+                              }}
+                            >
+                              {t.account.name}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 truncate text-xs text-slate-500">
                           {formatDisplayDate(t?.date)} • {t?.description ?? "No description"}

@@ -1,5 +1,6 @@
 import Expense from '../models/Expense.js';
 import User from '../models/User.js';
+import Account from '../models/Account.js';
 import { convertCurrency } from '../utils/currency.js';
 import mongoose from "mongoose";
 
@@ -11,23 +12,54 @@ export const addExpense = async (req, res) => {
 
         const convertedAmount = await convertCurrency(req.body.amount, transCurrency, userCurrency);
 
+        let accountId = req.body.account;
+        if (!accountId) {
+            let defaultAccount = await Account.findOne({ user: req.user.id, isDefault: true });
+            if (!defaultAccount) {
+                defaultAccount = new Account({
+                    user: req.user.id,
+                    name: 'Primary',
+                    isDefault: true,
+                    color: '#4F46E5'
+                });
+                await defaultAccount.save();
+            }
+            accountId = defaultAccount._id;
+        } else {
+            const exists = await Account.findOne({ _id: accountId, user: req.user.id });
+            if (!exists) {
+                return res.status(400).json({ message: "Invalid account selected." });
+            }
+        }
+
         const newExpense = new Expense({ 
             ...req.body, 
             currency: transCurrency,
             convertedAmount,
-            user: req.user.id 
+            user: req.user.id,
+            account: accountId
         });
         await newExpense.save();
-        res.status(201).json(newExpense);
+        
+        // Populate account info for frontend
+        const populated = await Expense.findById(newExpense._id).populate('account');
+        
+        res.status(201).json(populated);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 export const getSummary = async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.user.id);
+        const { accountId } = req.query;
+
+        const match = { user: userId };
+        if (accountId) {
+            match.account = new mongoose.Types.ObjectId(accountId);
+        }
 
         const stats = await Expense.aggregate([
-            { $match: { user: userId } }, 
+            { $match: match }, 
             { $group: { _id: "$type", total: { $sum: { $ifNull: [ "$convertedAmount", "$amount" ] } } } }
         ]);
         
@@ -43,7 +75,12 @@ export const getSummary = async (req, res) => {
 
 export const getExpenses = async (req, res) => {
     try {
-        const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 });
+        const { accountId } = req.query;
+        const query = { user: req.user.id };
+        if (accountId) {
+            query.account = accountId;
+        }
+        const expenses = await Expense.find(query).populate('account').sort({ date: -1 });
         res.json(expenses);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -63,11 +100,18 @@ export const updateExpense = async (req, res) => {
 
         const convertedAmount = await convertCurrency(amount, currency, userCurrency);
 
+        if (req.body.account) {
+            const exists = await Account.findOne({ _id: req.body.account, user: req.user.id });
+            if (!exists) {
+                return res.status(400).json({ message: "Invalid account selected." });
+            }
+        }
+
         const updated = await Expense.findOneAndUpdate(
             { _id: req.params.id, user: req.user.id },
             { ...req.body, convertedAmount },
             { new: true }
-        );
+        ).populate('account');
         res.json(updated);
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -82,8 +126,13 @@ export const deleteExpense = async (req, res) => {
 export const getMonthlyExpenses = async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.user.id);
+        const { accountId } = req.query;
+        const match = { user: userId, type: "EXPENSE" };
+        if (accountId) {
+            match.account = new mongoose.Types.ObjectId(accountId);
+        }
         const data = await Expense.aggregate([
-            { $match: { user: userId, type: "EXPENSE" } },
+            { $match: match },
             { 
                 $group: { 
                     _id: { $month: "$date" }, 
@@ -98,23 +147,26 @@ export const getMonthlyExpenses = async (req, res) => {
 
 export const filterExpenses = async (req, res) => {
     try {
-        const { category, startDate, endDate, sort } = req.query;
+        const { category, startDate, endDate, sort, accountId } = req.query;
         let query = { user: req.user.id };
 
         // 1. Filter by category
         if (category) query.category = category;
 
-        // 2. Filter by date range
+        // 2. Filter by account
+        if (accountId) query.account = accountId;
+
+        // 3. Filter by date range
         if (startDate || endDate) {
             query.date = {};
             if (startDate) query.date.$gte = new Date(startDate);
             if (endDate) query.date.$lte = new Date(endDate);
         }
 
-        // 3. Query DB
-        let expenses = Expense.find(query);
+        // 4. Query DB
+        let expenses = Expense.find(query).populate('account');
 
-        // 4. Sort
+        // 5. Sort
         if (sort === 'asc') expenses = expenses.sort({ date: 1 });
         else expenses = expenses.sort({ date: -1 });
 

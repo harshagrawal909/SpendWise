@@ -251,9 +251,16 @@ async function fetchFromServerAndCache(): Promise<{ transactions: Transaction[];
 // Filter and sort transactions locally
 function localFilterExpenses(
   transactions: Transaction[],
-  filters: { category?: string; startDate?: string; endDate?: string; sort?: string } = {},
+  filters: { category?: string; startDate?: string; endDate?: string; sort?: string; accountId?: string } = {},
 ): Transaction[] {
   let result = [...transactions];
+
+  if (filters.accountId) {
+    result = result.filter((t) => {
+      const accId = typeof t.account === 'object' ? t.account?._id : t.account;
+      return accId === filters.accountId;
+    });
+  }
 
   if (filters.category) {
     result = result.filter((t) => t.category === filters.category);
@@ -284,10 +291,9 @@ function localFilterExpenses(
  */
 
 export async function getTransactions(
-  filters: { category?: string; startDate?: string; endDate?: string; sort?: string } = {},
+  filters: { category?: string; startDate?: string; endDate?: string; sort?: string; accountId?: string } = {},
 ): Promise<Transaction[]> {
   try {
-    // If we have unsynced changes, do not fetch from server to avoid overwrite conflicts
     const pendingCount = await getQueueCount();
     if (pendingCount > 0) {
       const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
@@ -295,15 +301,27 @@ export async function getTransactions(
       return localFilterExpenses(cached, filters);
     }
 
-    // Try fetching from server
     try {
-      const { transactions } = await fetchFromServerAndCache();
+      const params: any = {};
+      if (filters.accountId) params.accountId = filters.accountId;
+      if (filters.category) params.category = filters.category;
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+      if (filters.sort) params.sort = filters.sort;
+
+      // Online: Fetch with filters
+      const res = await API.get('/expenses/filter', { params });
+      const transactions = Array.isArray(res.data) ? res.data : [];
+
+      if (!filters.accountId && !filters.category && !filters.startDate && !filters.endDate) {
+        // Cache whole source of truth
+        await AsyncStorage.setItem(KEY_TRANSACTIONS, JSON.stringify(transactions));
+      }
       updateSyncState('synced', 0);
-      return localFilterExpenses(transactions, filters);
+      return transactions;
     } catch (err) {
       if (isNetworkError(err)) {
         updateSyncState('offline', 0);
-        // Fallback to local cache
         const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
         const cached = cachedJson ? JSON.parse(cachedJson) : [];
         return localFilterExpenses(cached, filters);
@@ -312,44 +330,65 @@ export async function getTransactions(
     }
   } catch (err) {
     console.error('getTransactions failed:', err);
-    // Fallback to local cache
     const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
     const cached = cachedJson ? JSON.parse(cachedJson) : [];
     return localFilterExpenses(cached, filters);
   }
 }
 
-export async function getSummary(): Promise<Summary> {
+export async function getSummary(accountId?: string): Promise<Summary> {
   try {
     const pendingCount = await getQueueCount();
     if (pendingCount > 0) {
-      const cachedJson = await AsyncStorage.getItem(KEY_SUMMARY);
-      return cachedJson ? JSON.parse(cachedJson) : { income: 0, expense: 0, balance: 0 };
+      const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
+      const cached = cachedJson ? JSON.parse(cachedJson) : [];
+      const filtered = localFilterExpenses(cached, { accountId });
+      return recalculateSummary(filtered);
     }
 
     try {
-      const { summary } = await fetchFromServerAndCache();
+      const params = accountId ? { accountId } : {};
+      const res = await API.get('/expenses/summary', { params });
+      const summary = res.data ?? { income: 0, expense: 0, balance: 0 };
+      
+      if (!accountId) {
+        await AsyncStorage.setItem(KEY_SUMMARY, JSON.stringify(summary));
+      }
       updateSyncState('synced', 0);
       return summary;
     } catch (err) {
       if (isNetworkError(err)) {
         updateSyncState('offline', 0);
-        const cachedJson = await AsyncStorage.getItem(KEY_SUMMARY);
-        return cachedJson ? JSON.parse(cachedJson) : { income: 0, expense: 0, balance: 0 };
+        const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
+        const cached = cachedJson ? JSON.parse(cachedJson) : [];
+        const filtered = localFilterExpenses(cached, { accountId });
+        return recalculateSummary(filtered);
       }
       throw err;
     }
   } catch (err) {
     console.error('getSummary failed:', err);
-    const cachedJson = await AsyncStorage.getItem(KEY_SUMMARY);
-    return cachedJson ? JSON.parse(cachedJson) : { income: 0, expense: 0, balance: 0 };
+    const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
+    const cached = cachedJson ? JSON.parse(cachedJson) : [];
+    const filtered = localFilterExpenses(cached, { accountId });
+    return recalculateSummary(filtered);
   }
 }
 
 export async function createTransaction(
-  data: Omit<Transaction, 'id' | 'amount'> & { amount: number | string },
+  data: Omit<Transaction, 'id' | 'amount'> & { amount: number | string; account?: any },
 ): Promise<Transaction> {
   const tempId = generateUniqueId();
+  
+  let resolvedAccount = undefined;
+  if (data.account) {
+    if (typeof data.account === 'object') {
+      resolvedAccount = data.account;
+    } else {
+      resolvedAccount = { _id: data.account, name: 'Wallet', color: '#4F46E5' }; 
+    }
+  }
+
   const newTx: Transaction = {
     id: tempId,
     amount: Number(data.amount),
@@ -357,6 +396,8 @@ export async function createTransaction(
     date: toDateInputValue(data.date),
     description: data.description,
     type: data.type,
+    currency: data.currency,
+    account: resolvedAccount,
   };
 
   // 1. Update local cache immediately (Optimistic Update)
@@ -377,6 +418,7 @@ export async function createTransaction(
       ...data,
       amount: Number(data.amount),
       date: toDateInputValue(data.date),
+      account: typeof data.account === 'object' ? data.account._id : data.account,
     },
     timestamp: Date.now(),
   };
@@ -391,7 +433,7 @@ export async function createTransaction(
 
 export async function updateTransaction(
   id: string,
-  data: Partial<Omit<Transaction, 'id' | 'amount'>> & { amount?: number | string },
+  data: Partial<Omit<Transaction, 'id' | 'amount'>> & { amount?: number | string; account?: any },
 ): Promise<Transaction> {
   // 1. Read cache and find target transaction
   const cachedJson = await AsyncStorage.getItem(KEY_TRANSACTIONS);
@@ -403,11 +445,24 @@ export async function updateTransaction(
   }
 
   const existingTx = cached[targetIndex];
+  
+  let resolvedAccount = existingTx.account;
+  if (data.account !== undefined) {
+    if (!data.account) {
+      resolvedAccount = undefined;
+    } else if (typeof data.account === 'object') {
+      resolvedAccount = data.account;
+    } else {
+      resolvedAccount = { _id: data.account, name: 'Wallet', color: '#4F46E5' };
+    }
+  }
+
   const updatedTx: Transaction = {
     ...existingTx,
     ...data,
     amount: data.amount !== undefined ? Number(data.amount) : existingTx.amount,
     date: data.date !== undefined ? toDateInputValue(data.date) : existingTx.date,
+    account: resolvedAccount,
   };
 
   // 2. Update cache immediately
@@ -418,6 +473,8 @@ export async function updateTransaction(
   // 3. Update queue
   const queueJson = await AsyncStorage.getItem(KEY_QUEUE);
   let queue: QueueItem[] = queueJson ? JSON.parse(queueJson) : [];
+
+  const apiAccount = data.account ? (typeof data.account === 'object' ? data.account._id : data.account) : undefined;
 
   if (id.startsWith('temp_')) {
     // If it is a temp ID, we just modify the original ADD action's data payload in place!
@@ -430,6 +487,7 @@ export async function updateTransaction(
             ...data,
             amount: data.amount !== undefined ? Number(data.amount) : item.data.amount,
             date: data.date !== undefined ? toDateInputValue(data.date) : item.data.date,
+            account: apiAccount !== undefined ? apiAccount : item.data.account,
           },
         };
       }
@@ -445,6 +503,7 @@ export async function updateTransaction(
         ...data,
         ...(data.amount !== undefined ? { amount: Number(data.amount) } : {}),
         ...(data.date !== undefined ? { date: toDateInputValue(data.date) } : {}),
+        ...(apiAccount !== undefined ? { account: apiAccount } : {}),
       },
       timestamp: Date.now(),
     };

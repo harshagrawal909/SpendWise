@@ -13,6 +13,7 @@ import TermsOfService from "./pages/TermsOfService.jsx";
 import Contact from "./pages/Contact.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import ExcelExport from "./pages/ExcelExport.jsx";
+import AccountsPage from "./pages/AccountsPage.jsx";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/expenses" element={<ExpensesPage />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />

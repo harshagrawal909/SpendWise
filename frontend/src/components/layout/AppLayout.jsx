@@ -8,6 +8,7 @@ import FeedbackModal from "../feedback/FeedbackModal";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/accounts", label: "Accounts" },
   { to: "/expenses", label: "Expenses" },
   { to: "/analytics", label: "Analytics" },
   { to: "/excel", label: "Export Excel" },

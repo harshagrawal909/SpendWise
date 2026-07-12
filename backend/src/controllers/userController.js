@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Expense from '../models/Expense.js';
+import Account from '../models/Account.js';
 import bcrypt from 'bcryptjs';
 import { convertCurrency } from '../utils/currency.js';
 
@@ -96,6 +97,8 @@ export const deleteAccount = async (req, res) => {
         const userId = req.user.id;
         // Delete all expenses belonging to the user
         await Expense.deleteMany({ user: userId });
+        // Delete all accounts belonging to the user
+        await Account.deleteMany({ user: userId });
         // Delete the user
         await User.findByIdAndDelete(userId);
         res.json({ message: "Account deleted successfully" });

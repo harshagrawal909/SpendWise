@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Alert, Platform, TouchableOpacity } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from '@/components/ui/Card';
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { SpendWiseTheme } from '@/constants/theme';
@@ -20,6 +21,14 @@ export default function ExcelExportScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+
+  useEffect(() => {
+    API.get('/accounts')
+      .then((res) => setAccounts(res.data || []))
+      .catch((err) => console.error("Error loading accounts in Excel:", err));
+  }, []);
 
   const handleQuickSelect = (days: number) => {
     const end = new Date();
@@ -45,13 +54,14 @@ export default function ExcelExportScreen() {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: 'asc',
+          accountId: selectedAccountId || undefined,
         },
       });
 
       const transactions = Array.isArray(res.data) ? res.data : [];
 
       if (transactions.length === 0) {
-        Alert.alert('No Data', 'No transactions found for the selected date range.');
+        Alert.alert('No Data', 'No transactions found for the selected filters.');
         setLoading(false);
         return;
       }
@@ -63,6 +73,7 @@ export default function ExcelExportScreen() {
         Amount: t.amount ?? 0,
         Currency: t.currency || 'INR',
         'Converted Amount': t.convertedAmount ?? (t.amount ?? 0),
+        Account: t.account?.name || 'Primary',
         Category: t.category || '',
         Description: t.description || '',
       }));
@@ -165,6 +176,13 @@ export default function ExcelExportScreen() {
           </View>
 
           <View style={styles.divider} />
+
+          <Select
+            label="Filter by Account"
+            value={selectedAccountId}
+            onValueChange={setSelectedAccountId}
+            options={[{ label: 'All Accounts (Combined)', value: '' }, ...accounts.map((acc) => ({ label: acc.name, value: acc._id }))]}
+          />
 
           <Text style={styles.sectionLabel}>Custom Date Range</Text>
           <DatePickerField label="Start Date" value={startDate} onChange={setStartDate} />

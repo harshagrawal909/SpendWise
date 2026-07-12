@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import API from "../services/api";
 import { Card, CardBody, CardHeader, CardSubtitle, CardTitle } from "../components/ui/Card";
 import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
 import Button from "../components/ui/Button";
 import Spinner from "../components/ui/Spinner";
 import { todayInputValue } from "../utils/date.js";
@@ -14,6 +15,14 @@ export default function ExcelExport() {
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
+
+  useEffect(() => {
+    API.get("/accounts")
+      .then((res) => setAccounts(res.data || []))
+      .catch((err) => console.error("Error loading accounts:", err));
+  }, []);
 
   const handleQuickSelect = (days) => {
     const end = new Date();
@@ -41,6 +50,7 @@ export default function ExcelExport() {
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: "asc",
+          accountId: selectedAccountId || undefined,
         },
       });
 
@@ -50,7 +60,7 @@ export default function ExcelExport() {
         toast.push({
           tone: "warning",
           title: "No Data",
-          message: "No transactions found for the selected date range.",
+          message: "No transactions found for the selected filters.",
         });
         setLoading(false);
         return;
@@ -63,6 +73,7 @@ export default function ExcelExport() {
         "Amount": t.amount ?? 0,
         "Currency": t.currency || "INR",
         "Converted Amount": t.convertedAmount ?? (t.amount ?? 0),
+        "Account": t.account?.name || "Primary",
         "Category": t.category || "",
         "Description": t.description || "",
       }));
@@ -157,6 +168,19 @@ export default function ExcelExport() {
           </div>
 
           <hr className="border-slate-100" />
+
+          <Select
+            label="Filter by Account"
+            value={selectedAccountId}
+            onChange={(e) => setSelectedAccountId(e.target.value)}
+          >
+            <option value="">All Accounts (Combined)</option>
+            {accounts.map((acc) => (
+              <option key={acc._id} value={acc._id}>
+                {acc.name}
+              </option>
+            ))}
+          </Select>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input

@@ -44,6 +44,7 @@ export type Transaction = {
   type: 'EXPENSE' | 'INCOME';
   currency?: string;
   convertedAmount?: number;
+  account?: any;
 };
 
 export type Summary = {
